@@ -1,0 +1,94 @@
+# ==============================================================================
+# PAYPULSE .gitignore
+# Strictly ensures GitHub only tracks production code, configs, and documentation
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. SECRETS & ENVIRONMENT VARIABLES (NEVER COMMIT)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+*.pem
+*.key
+
+# ------------------------------------------------------------------------------
+# 2. INTERNAL AGENTIC WORKFLOWS & PLANNING ARTIFACTS (DO NOT COMMIT)
+# ------------------------------------------------------------------------------
+STATE.md
+AGENTS.md
+SUBAGENTS.md
+EVALUATORS.md
+QA_TESTER.md
+SECURITY_EXPERT.md
+DESIGN.md
+docs/
+artifacts/
+*.pdf
+
+# ------------------------------------------------------------------------------
+# 3. DATABASE & RUNTIME PERSISTENCE
+# ------------------------------------------------------------------------------
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# ------------------------------------------------------------------------------
+# 4. DEPENDENCIES & PACKAGE CACHES
+# ------------------------------------------------------------------------------
+node_modules/
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ------------------------------------------------------------------------------
+# 5. BUILD OUTPUTS & BUNDLER CACHES
+# ------------------------------------------------------------------------------
+dist/
+dist-ssr/
+build/
+.vite/
+.turbo/
+.cache/
+*.local
+
+# ------------------------------------------------------------------------------
+# 6. TESTING, COVERAGE & SECURITY SCANNER REPORTS
+# ------------------------------------------------------------------------------
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+.scannerwork/
+
+# ------------------------------------------------------------------------------
+# 7. LOGS & SYSTEM NOISE
+# ------------------------------------------------------------------------------
+logs/
+*.log
+
+# ------------------------------------------------------------------------------
+# 8. IDE & OS METADATA
+# ------------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
