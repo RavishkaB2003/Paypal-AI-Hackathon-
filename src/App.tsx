@@ -5,8 +5,10 @@ import { TopNavbar } from './components/layout/TopNavbar';
 import { LeftIconRail } from './components/layout/LeftIconRail';
 import { TotalBalanceCard } from './components/dashboard/TotalBalanceCard';
 import { TransactionsOverviewCard } from './components/dashboard/TransactionOverviewCard';
+import { YourCardsCard } from './components/dashboard/YourCardsCard';
 import { ActiveMilestonesCard } from './components/dashboard/ActiveMilestonesCard';
 import { ExpensesDonutCard } from './components/dashboard/ExpensesDonutCard';
+import { RecentTransactionsCard } from './components/dashboard/RecentTransactionsCard';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('OVERVIEW');
@@ -51,33 +53,27 @@ export default function App() {
             </button>
           </div>
 
-          {/* Active Tab Container: Finity Bento Grid */}
+          {/* Active Tab Container: Full 6-Card Finity Bento Grid */}
           <div className="flex-1">
             {activeTab === 'OVERVIEW' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {/* 1. Total Balance Hero Bento Card */}
+                {/* Column 1 - Top: Total Balance */}
                 <TotalBalanceCard />
 
-                {/* 2. AG Charts Transactions Overview Bento Card (v14) */}
+                {/* Column 2 - Top: Transactions Overview (AG Charts v14) */}
                 <TransactionsOverviewCard />
 
-                {/* 3. Placeholder for Your Cards & Limits (Micro-Step 2.3B) */}
-                <div className="bg-[#1E1E26] rounded-[24px] p-[28px] border border-white/5 min-h-[260px] flex flex-col justify-between shadow-sm">
-                  <span className="text-[#8E8EA0] text-sm font-medium">Your Cards & Limits</span>
-                  <p className="text-xs text-[#8E8EA0]">Will be populated with Finity contactless card & daily limit bar in Micro-Step 2.3B</p>
-                </div>
+                {/* Column 3 - Top: Your Cards & Limits */}
+                <YourCardsCard />
 
-                {/* 4. Active Milestones Bento Card */}
+                {/* Column 1 - Bottom: Active Milestones */}
                 <ActiveMilestonesCard />
 
-                {/* 5. AG Charts All Expenses Donut Bento Card (v14) */}
+                {/* Column 2 - Bottom: All Expenses (AG Charts v14 Donut) */}
                 <ExpensesDonutCard />
 
-                {/* 6. Placeholder for Recent Transactions (Micro-Step 2.3B) */}
-                <div className="bg-[#1E1E26] rounded-[24px] p-[28px] border border-white/5 min-h-[260px] flex flex-col justify-between shadow-sm">
-                  <span className="text-[#8E8EA0] text-sm font-medium">Recent Transactions</span>
-                  <p className="text-xs text-[#8E8EA0]">Will be populated with transaction rows in Micro-Step 2.3B</p>
-                </div>
+                {/* Column 3 - Bottom: Recent Transactions */}
+                <RecentTransactionsCard />
               </div>
             )}
 
