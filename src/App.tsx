@@ -9,6 +9,10 @@ import { YourCardsCard } from './components/dashboard/YourCardsCard';
 import { ActiveMilestonesCard } from './components/dashboard/ActiveMilestonesCard';
 import { ExpensesDonutCard } from './components/dashboard/ExpensesDonutCard';
 import { RecentTransactionsCard } from './components/dashboard/RecentTransactionsCard';
+import { InvoicesView } from './components/views/InvoicesView';
+import { SmartScanView } from './components/views/SmartScanView';
+import { MilestonesView } from './components/views/MilestonesView';
+import { ProtectionView } from './components/views/ProtectionView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('OVERVIEW');
@@ -28,19 +32,19 @@ export default function App() {
           {/* Header Row: Title & "+ Add widget" Action */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">
+                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">
                 {activeTab === 'OVERVIEW' && 'Dashboard'}
-                {activeTab === 'INVOICES' && 'Invoices & Split Settlements'}
-                {activeTab === 'SMART_SCAN' && 'Smart Scan & Document Proofs'}
-                {activeTab === 'MILESTONES' && 'Milestone Escrow Pipelines'}
-                {activeTab === 'PROTECTION' && 'Payment Protection & Evidence'}
+                {activeTab === 'INVOICES' && 'Invoices'}
+                {activeTab === 'SMART_SCAN' && 'Receipt & Document Scanner'}
+                {activeTab === 'MILESTONES' && 'Project Milestones'}
+                {activeTab === 'PROTECTION' && 'Disputes & Protection'}
               </h1>
               <p className="text-xs md:text-sm text-[#8E8EA0] mt-1">
                 {activeTab === 'OVERVIEW' && 'Manage your payments and transactions in one click'}
-                {activeTab === 'INVOICES' && 'Issue, track, and collect client invoices with automated escrow splits'}
-                {activeTab === 'SMART_SCAN' && 'Upload receipts and invoices to automatically extract data and seal cryptographic proof'}
-                {activeTab === 'MILESTONES' && 'Protect delivery milestones with structured 30/40/30 release tranches'}
-                {activeTab === 'PROTECTION' && 'Shield your business with cryptographic evidence bundles submitted to PayPal Resolution'}
+                {activeTab === 'INVOICES' && 'Create, send, and track client invoices and payment splits'}
+                {activeTab === 'SMART_SCAN' && 'Upload receipts, bills, or delivery slips to auto-fill payment details'}
+                {activeTab === 'MILESTONES' && 'Break client projects into payment steps and release funds as work gets approved'}
+                {activeTab === 'PROTECTION' && 'Manage buyer claims, delivery records, and PayPal dispute cases'}
               </p>
             </div>
 
@@ -53,43 +57,31 @@ export default function App() {
             </button>
           </div>
 
-          {/* Active Tab Container: Full 6-Card Finity Bento Grid */}
+          {/* Active Tab Container: All 5 Dedicated Workflows */}
           <div className="flex-1">
+            {/* Tab 1: Overview Finity Bento Grid */}
             {activeTab === 'OVERVIEW' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {/* Column 1 - Top: Total Balance */}
                 <TotalBalanceCard />
-
-                {/* Column 2 - Top: Transactions Overview (AG Charts v14) */}
                 <TransactionsOverviewCard />
-
-                {/* Column 3 - Top: Your Cards & Limits */}
                 <YourCardsCard />
-
-                {/* Column 1 - Bottom: Active Milestones */}
                 <ActiveMilestonesCard />
-
-                {/* Column 2 - Bottom: All Expenses (AG Charts v14 Donut) */}
                 <ExpensesDonutCard />
-
-                {/* Column 3 - Bottom: Recent Transactions */}
                 <RecentTransactionsCard />
               </div>
             )}
 
-            {activeTab !== 'OVERVIEW' && (
-              <div className="bg-[#1E1E26] rounded-[24px] p-[32px] border border-white/5 min-h-[400px] flex flex-col items-center justify-center text-center shadow-sm">
-                <div className="w-12 h-12 rounded-full bg-[#2F2C44] flex items-center justify-center text-[#8B7CFF] mb-3">
-                  <Plus className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-1">
-                  {activeTab} Workspace
-                </h3>
-                <p className="text-xs text-[#8E8EA0] max-w-md">
-                  This dedicated workspace will be populated in upcoming micro-steps with AG Grid, Multimodal Vision dropzones, or PayPal Protection shields.
-                </p>
-              </div>
-            )}
+            {/* Tab 2: Invoices AG Grid View */}
+            {activeTab === 'INVOICES' && <InvoicesView />}
+
+            {/* Tab 3: Smart Scan Vision View */}
+            {activeTab === 'SMART_SCAN' && <SmartScanView />}
+
+            {/* Tab 4: Milestones Escrow Pipeline View */}
+            {activeTab === 'MILESTONES' && <MilestonesView />}
+
+            {/* Tab 5: Payment Protection & Evidence View */}
+            {activeTab === 'PROTECTION' && <ProtectionView />}
           </div>
         </main>
       </div>
