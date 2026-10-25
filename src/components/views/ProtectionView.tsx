@@ -196,7 +196,6 @@ export const ProtectionView: React.FC = () => {
         </div>
       </div>
 
-      {/* Operational Delivery & Tracking Records Table */}
             {/* Operational Delivery & Tracking Records Table */}
       <div className="bg-[#1E1E26] rounded-[24px] border border-white/5 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-white/5">
