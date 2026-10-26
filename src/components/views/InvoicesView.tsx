@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, Filter, ArrowUpRight, DollarSign, Shield } from 'lucide-react';
+import { Plus, Search, ArrowUpRight, Shield } from 'lucide-react';
 import { AgGridReact } from 'ag-grid-react';
 import {
   ModuleRegistry,
@@ -26,7 +26,7 @@ const finityAgTheme = themeQuartz.withParams({
   fontSize: 13,
 });
 
-const DEMO_INVOICES: Invoice[] = [
+export const INITIAL_INVOICES: Invoice[] = [
   {
     id: 'inv-1',
     invoiceNumber: 'INV-2026-001',
@@ -92,20 +92,28 @@ const DEMO_INVOICES: Invoice[] = [
   },
 ];
 
-export const InvoicesView: React.FC = () => {
+interface InvoicesViewProps {
+  invoices?: Invoice[];
+  onOpenCreateInvoice?: () => void;
+}
+
+export const InvoicesView: React.FC<InvoicesViewProps> = ({
+  invoices = INITIAL_INVOICES,
+  onOpenCreateInvoice,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   // Filtered rows
   const rowData = useMemo(() => {
-    return DEMO_INVOICES.filter((inv) => {
+    return invoices.filter((inv) => {
       const matchesSearch =
         inv.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.clientName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'ALL' || inv.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [searchTerm, statusFilter]);
+  }, [invoices, searchTerm, statusFilter]);
 
   // AG Grid Column Definitions
   const colDefs = useMemo<ColDef<Invoice>[]>(
@@ -124,16 +132,15 @@ export const InvoicesView: React.FC = () => {
         headerName: 'Client',
         flex: 1.2,
         minWidth: 200,
-        cellRenderer: (params: { data?: Invoice }) => (
+        cellRenderer: (params: { data?: Invoice }) =>
           params.data ? (
             <div className="flex flex-col py-1">
               <span className="text-white font-medium leading-tight">{params.data.clientName}</span>
               <span className="text-[11px] text-[#8E8EA0] leading-tight">{params.data.clientEmail}</span>
             </div>
-          ) : null
-        ),
+          ) : null,
       },
-            {
+      {
         field: 'status',
         headerName: 'Status',
         width: 140,
@@ -157,7 +164,7 @@ export const InvoicesView: React.FC = () => {
         },
       },
       {
-        headerName: 'Escrow Split (30/40/30)',
+        headerName: 'Split Stages (30/40/30)',
         width: 190,
         cellRenderer: (params: { data?: Invoice }) => {
           if (!params.data?.escrowSplit) return <span className="text-[#8E8EA0]">Standard</span>;
@@ -212,8 +219,8 @@ export const InvoicesView: React.FC = () => {
               </span>
             ) : (
               <button
-                onClick={() => alert(`Opening PayPal checkout for ${params.data?.invoiceNumber}`)}
-                className="px-3 py-1 bg-[#8B7CFF] hover:bg-[#7A6AE6] text-white text-xs font-medium rounded-full shadow-sm transition cursor-pointer flex items-center gap-1"
+                onClick={() => alert(`Payment link copied for ${params.data?.invoiceNumber}`)}
+                className="px-3 py-1 bg-[#8B7CFF] hover:bg-[#7A6BEE] text-white text-xs font-medium rounded-full shadow-sm transition cursor-pointer flex items-center gap-1"
               >
                 <span>Collect</span>
                 <ArrowUpRight className="w-3 h-3" />
@@ -241,12 +248,12 @@ export const InvoicesView: React.FC = () => {
         </div>
 
         <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 shadow-sm">
-          <div className="text-xs text-[#8E8EA0] font-medium">In Milestone Escrow (30/40/30)</div>
+          <div className="text-xs text-[#8E8EA0] font-medium">In Project Stages (30/40/30)</div>
           <div className="text-2xl lg:text-3xl font-bold text-white tracking-tight tabular-nums mt-2">
             $12,200.00
           </div>
           <div className="text-[11px] text-[#8B7CFF] mt-1 flex items-center gap-1 font-medium">
-            <span>3 projects locked</span>
+            <span>3 active projects</span>
           </div>
         </div>
 
@@ -294,8 +301,8 @@ export const InvoicesView: React.FC = () => {
           </div>
 
           <button
-            onClick={() => alert('Invoice creation modal will connect in Micro-Step 3.1!')}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#8B7CFF] hover:bg-[#7A6AE6] text-white text-xs font-semibold rounded-full shadow-[0_0_12px_rgba(139,124,255,0.3)] transition cursor-pointer shrink-0"
+            onClick={onOpenCreateInvoice}
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#8B7CFF] hover:bg-[#7A6BEE] text-white text-xs font-semibold rounded-full transition cursor-pointer shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create Invoice</span>
