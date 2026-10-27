@@ -1,10 +1,21 @@
 import React from 'react';
 import { Plus, Wifi, CreditCard } from 'lucide-react';
+import { SEED_OVERVIEW_DATA } from '../../shared/seeds';
+import { type OverviewCardInfo } from '../../shared/contracts';
 
-export const YourCardsCard: React.FC = () => {
-  const dailySpent = 10000;
-  const dailyLimit = 12000;
-  const spentPercent = Math.round((dailySpent / dailyLimit) * 100);
+interface YourCardsCardProps {
+  card?: OverviewCardInfo;
+  onAddCard?: () => void;
+}
+
+export const YourCardsCard: React.FC<YourCardsCardProps> = ({
+  card = SEED_OVERVIEW_DATA.card,
+  onAddCard,
+}) => {
+  const spentPercent =
+    card.dailyLimit > 0
+      ? Math.min(100, Math.max(0, Math.round((card.dailySpent / card.dailyLimit) * 100)))
+      : 0;
 
   return (
     <div className="bg-[#1E1E26] rounded-[24px] p-[28px] border border-white/5 shadow-sm flex flex-col justify-between">
@@ -12,10 +23,10 @@ export const YourCardsCard: React.FC = () => {
       <div className="flex items-center justify-between mb-3">
         <span className="text-[#8E8EA0] text-sm font-medium">Your Cards</span>
         <button
-          onClick={() => alert('Card management will connect in Micro-Step 3.1!')}
+          onClick={onAddCard || (() => alert('Card management will connect in Part 3!'))}
           className="flex items-center gap-1 px-3 py-1 bg-[#262630] hover:bg-[#2F2C44] text-white text-xs font-medium rounded-full border border-white/5 transition cursor-pointer"
         >
-          <Plus className="w-3.5 h-3.5 text-[#8B7CFF]" />
+          <Plus className="w-3.5 h-3.5 text-[#8E8EA0]" />
           <span>Add card</span>
         </button>
       </div>
@@ -38,18 +49,18 @@ export const YourCardsCard: React.FC = () => {
 
         {/* Card Number */}
         <div className="font-mono text-sm tracking-[0.2em] text-white/90 mb-4 relative z-10">
-          1253 •••• •••• 3090
+          •••• •••• •••• {card.maskedNumber}
         </div>
 
         {/* Bottom Row: Holder & Expiry */}
         <div className="flex items-center justify-between relative z-10 text-xs">
           <div>
             <div className="text-[9px] uppercase tracking-wider text-[#8E8EA0]">Card Holder</div>
-            <div className="font-medium text-white tracking-wide">Oripio Studio</div>
+            <div className="font-medium text-white tracking-wide">{card.holderName}</div>
           </div>
           <div className="text-right">
             <div className="text-[9px] uppercase tracking-wider text-[#8E8EA0]">Expires</div>
-            <div className="font-mono text-white/90">09/28</div>
+            <div className="font-mono text-white/90">{card.expiry}</div>
           </div>
         </div>
       </div>
@@ -57,21 +68,21 @@ export const YourCardsCard: React.FC = () => {
       {/* Daily Transactions Limit */}
       <div className="pt-3 border-t border-white/[0.04]">
         <div className="flex items-center justify-between text-xs mb-2">
-          <span className="text-[#8E8EA0]">Daily transactions limit</span>
+          <span className="text-[#8E8EA0]">Daily limit</span>
           <span className="text-white font-semibold tabular-nums">
-            ${dailySpent.toLocaleString()} of ${dailyLimit.toLocaleString()}
+            ${card.dailySpent.toLocaleString()} of ${card.dailyLimit.toLocaleString()}
           </span>
         </div>
 
         <div className="w-full bg-[#262630] h-2 rounded-full overflow-hidden flex">
           <div
-            className="bg-[#8B7CFF] h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(139,124,255,0.4)]"
+            className="bg-[#8B7CFF] h-full rounded-full transition-all duration-500"
             style={{ width: `${spentPercent}%` }}
           />
         </div>
 
         <div className="text-[11px] text-[#8E8EA0] mt-1.5 text-right tabular-nums">
-          {spentPercent}% spent today
+          {spentPercent}% used today
         </div>
       </div>
     </div>

@@ -2,38 +2,25 @@ import React, { useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { AgCharts } from 'ag-charts-react';
 import { ModuleRegistry, AllCommunityModule, type AgCartesianChartOptions } from 'ag-charts-community';
+import { SEED_OVERVIEW_DATA } from '../../shared/seeds';
 
-// Register AG Charts v14 community modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface TransactionsOverviewCardProps {
+  cashflow?: typeof SEED_OVERVIEW_DATA.cashflow;
   totalVolume?: string;
   timeframe?: string;
 }
 
 export const TransactionsOverviewCard: React.FC<TransactionsOverviewCardProps> = ({
-  totalVolume = '$54,763.00',
+  cashflow = SEED_OVERVIEW_DATA.cashflow,
+  totalVolume = '$80,300.00',
   timeframe = 'This Year',
 }) => {
-  // Finity Dual-Spline Cashflow Data (Jan to Aug)
-  const chartData = useMemo(
-    () => [
-      { month: 'Jan', earning: 18000, spending: 12000 },
-      { month: 'Feb', earning: 26000, spending: 15500 },
-      { month: 'Mar', earning: 22500, spending: 19000 },
-      { month: 'Apr', earning: 34500, spending: 14000 },
-      { month: 'May', earning: 29000, spending: 21000 },
-      { month: 'Jun', earning: 39500, spending: 22000 },
-      { month: 'Jul', earning: 46000, spending: 25000 },
-      { month: 'Aug', earning: 54763, spending: 28200 },
-    ],
-    []
-  );
-
   // AG Charts v14 Finity Matte Dark Configuration
   const chartOptions: AgCartesianChartOptions = useMemo(
     () => ({
-      data: chartData,
+      data: cashflow,
       theme: 'ag-default-dark',
       background: {
         fill: 'transparent',
@@ -99,10 +86,10 @@ export const TransactionsOverviewCard: React.FC<TransactionsOverviewCardProps> =
         },
       },
       legend: {
-        enabled: false, // Finity pill indicators used above
+        enabled: false,
       },
     }),
-    [chartData]
+    [cashflow]
   );
 
   return (
