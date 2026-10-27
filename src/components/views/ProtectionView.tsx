@@ -1,97 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ArrowUpRight, Check, FileText, Truck } from 'lucide-react';
+import { type ProtectionCase, type DeliveryRecord, formatCurrency } from '../../shared/contracts';
+import { SEED_DISPUTE_CASES, SEED_DELIVERY_RECORDS } from '../../shared/seeds';
 
-interface DisputeCase {
-  caseId: string;
-  invoiceId: string;
-  client: string;
-  amount: string;
-  reason: string;
-  status: 'UNDER_REVIEW' | 'RESOLVED_WON';
-  carrierProof: string;
-  updatedAt: string;
+interface ProtectionViewProps {
+  initialCases?: ProtectionCase[];
+  initialRecords?: DeliveryRecord[];
 }
 
-interface DeliveryRecord {
-  id: string;
-  invoiceId: string;
-  client: string;
-  documentTitle: string;
-  carrierOrMethod: string;
-  referenceCode: string;
-  syncedToPayPal: boolean;
-}
+export const ProtectionView: React.FC<ProtectionViewProps> = ({
+  initialCases = SEED_DISPUTE_CASES,
+  initialRecords = SEED_DELIVERY_RECORDS,
+}) => {
+  const [cases, setCases] = useState<ProtectionCase[]>(initialCases);
+  const [records] = useState<DeliveryRecord[]>(initialRecords);
 
-const INITIAL_CASES: DisputeCase[] = [
-  {
-    caseId: 'PP-D-99412',
-    invoiceId: 'INV-2026-0842',
-    client: 'Northstar Retail Group',
-    amount: '$4,250.00',
-    reason: 'Item or service not received',
-    status: 'UNDER_REVIEW',
-    carrierProof: 'DHL Express #DHL-884920194 (Signed Delivery)',
-    updatedAt: 'Oct 24, 2026',
-  },
-  {
-    caseId: 'PP-D-88104',
-    invoiceId: 'INV-2026-0819',
-    client: 'Vanguard Digital Ltd',
-    amount: '$8,500.00',
-    reason: 'Unrecognized charge claim',
-    status: 'RESOLVED_WON',
-    carrierProof: 'Signed milestone approval & release receipt',
-    updatedAt: 'Oct 14, 2026',
-  },
-];
+  const openClaimsAmountCents = useMemo(() => {
+    return cases
+      .filter((c) => c.status === 'UNDER_REVIEW')
+      .reduce((s, c) => s + c.amountCents, 0);
+  }, [cases]);
 
-const DELIVERY_RECORDS: DeliveryRecord[] = [
-  {
-    id: 'REC-01',
-    invoiceId: 'INV-2026-0842',
-    client: 'Northstar Retail Group',
-    documentTitle: 'Signed Waybill & Handover Receipt',
-    carrierOrMethod: 'DHL Express',
-    referenceCode: 'DHL-884920194',
-    syncedToPayPal: true,
-  },
-  {
-    id: 'REC-02',
-    invoiceId: 'INV-2026-0841',
-    client: 'Acme Corp Design',
-    documentTitle: 'Stage 1 Architecture Sign-Off Sheet',
-    carrierOrMethod: 'Client Portal Approval',
-    referenceCode: 'APR-2026-4410',
-    syncedToPayPal: true,
-  },
-  {
-    id: 'REC-03',
-    invoiceId: 'INV-2026-0839',
-    client: 'Stripe Global Inc',
-    documentTitle: 'Production Release Delivery Confirmation',
-    carrierOrMethod: 'FedEx Priority',
-    referenceCode: 'FDX-773190421',
-    syncedToPayPal: true,
-  },
-];
-
-export const ProtectionView: React.FC = () => {
-  const [cases, setCases] = useState<DisputeCase[]>(INITIAL_CASES);
+  const resolvedClaimsAmountCents = useMemo(() => {
+    return cases
+      .filter((c) => c.status === 'RESOLVED_MERCHANT')
+      .reduce((s, c) => s + c.amountCents, 0);
+  }, [cases]);
 
   const handleSubmitProof = (caseId: string) => {
     setCases((prev) =>
-      prev.map((c) => (c.caseId === caseId ? { ...c, status: 'RESOLVED_WON' as const } : c))
+      prev.map((c) => (c.id === caseId ? { ...c, status: 'RESOLVED_MERCHANT' as const } : c))
     );
   };
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Clean 4-Column Ledger Summary Strip */}
+      {/* Clean 4-Column Ledger Summary Strip — Dynamically derived */}
       <div className="bg-[#1E1E26] rounded-[24px] border border-white/5 shadow-sm grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-white/5">
         <div className="p-6">
           <span className="text-xs text-[#8E8EA0] font-medium">Covered Sales</span>
           <p className="text-2xl font-bold text-white tabular-nums mt-1.5">$80,300.00</p>
-          <p className="text-[11px] text-[#8E8EA0] mt-1.5">18 orders with delivery proof</p>
+          <p className="text-[11px] text-[#8E8EA0] mt-1.5">{records.length} orders with delivery proof</p>
         </div>
 
         <div className="p-6">
@@ -99,20 +48,24 @@ export const ProtectionView: React.FC = () => {
           <p className="text-2xl font-bold text-white tabular-nums mt-1.5">
             {cases.filter((c) => c.status === 'UNDER_REVIEW').length}
           </p>
-          <p className="text-[11px] text-[#8E8EA0] mt-1.5">$4,250.00 held during review</p>
+          <p className="text-[11px] text-[#8E8EA0] mt-1.5">
+            {formatCurrency(openClaimsAmountCents)} held during review
+          </p>
         </div>
 
         <div className="p-6">
           <span className="text-xs text-[#8E8EA0] font-medium">Resolved Claims</span>
           <p className="text-2xl font-bold text-white tabular-nums mt-1.5">
-            {cases.filter((c) => c.status === 'RESOLVED_WON').length}
+            {cases.filter((c) => c.status === 'RESOLVED_MERCHANT').length}
           </p>
-          <p className="text-[11px] text-[#8E8EA0] mt-1.5">$8,500.00 released to balance</p>
+          <p className="text-[11px] text-[#8E8EA0] mt-1.5">
+            {formatCurrency(resolvedClaimsAmountCents)} released to balance
+          </p>
         </div>
 
         <div className="p-6">
           <span className="text-xs text-[#8E8EA0] font-medium">Saved Delivery Records</span>
-          <p className="text-2xl font-bold text-white tabular-nums mt-1.5">14</p>
+          <p className="text-2xl font-bold text-white tabular-nums mt-1.5">{records.length}</p>
           <p className="text-[11px] text-[#8E8EA0] mt-1.5">Receipts, waybills & sign-offs</p>
         </div>
       </div>
@@ -130,29 +83,31 @@ export const ProtectionView: React.FC = () => {
 
         <div className="divide-y divide-white/5">
           {cases.map((item) => {
-            const isWon = item.status === 'RESOLVED_WON';
+            const isWon = item.status === 'RESOLVED_MERCHANT';
 
             return (
               <div
-                key={item.caseId}
+                key={item.id}
                 className="p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5 hover:bg-white/[0.01] transition"
               >
                 <div className="flex flex-col gap-1.5 max-w-xl">
                   <div className="flex flex-wrap items-center gap-2.5 text-xs">
-                    <span className="font-semibold text-white">{item.caseId}</span>
+                    <span className="font-semibold text-white">{item.disputeId}</span>
                     <span className="text-white/20">·</span>
-                    <span className="text-[#8E8EA0]">{item.invoiceId}</span>
+                    <span className="text-[#8E8EA0]">{item.transactionId}</span>
                     <span className="text-white/20">·</span>
-                    <span className="text-[#8E8EA0]">{item.updatedAt}</span>
+                    <span className="text-[#8E8EA0]">{item.createdAt}</span>
                   </div>
 
                   <h3 className="text-sm font-semibold text-white">
-                    {item.client} — <span className="font-normal text-[#8E8EA0]">{item.reason}</span>
+                    {item.buyerEmail} — <span className="font-normal text-[#8E8EA0]">{item.reason}</span>
                   </h3>
 
                   <div className="flex items-center gap-2 text-xs text-[#8E8EA0] mt-1">
                     <Truck className="w-3.5 h-3.5 text-[#8E8EA0] shrink-0" />
-                    <span>Attached record: <strong className="text-white font-medium">{item.carrierProof}</strong></span>
+                    <span>
+                      Evidence: <strong className="text-white font-medium">{item.evidenceHashes[0] || 'Signed Delivery'}</strong>
+                    </span>
                   </div>
                 </div>
 
@@ -170,13 +125,15 @@ export const ProtectionView: React.FC = () => {
                   </div>
 
                   <div className="text-left lg:text-right min-w-[95px]">
-                    <p className="text-sm font-bold text-white tabular-nums">{item.amount}</p>
+                    <p className="text-sm font-bold text-white tabular-nums">
+                      {formatCurrency(item.amountCents)}
+                    </p>
                   </div>
 
                   <div className="min-w-[140px] flex justify-end">
                     {!isWon ? (
                       <button
-                        onClick={() => handleSubmitProof(item.caseId)}
+                        onClick={() => handleSubmitProof(item.id)}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#8B7CFF] hover:bg-[#7A6BEE] text-white text-xs font-semibold transition cursor-pointer"
                       >
                         <span>Send Proof</span>
@@ -196,7 +153,7 @@ export const ProtectionView: React.FC = () => {
         </div>
       </div>
 
-            {/* Operational Delivery & Tracking Records Table */}
+      {/* Operational Delivery & Tracking Records Table */}
       <div className="bg-[#1E1E26] rounded-[24px] border border-white/5 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-white/5">
           <h3 className="text-base font-semibold text-white">Delivery & Tracking Records</h3>
@@ -206,7 +163,7 @@ export const ProtectionView: React.FC = () => {
         </div>
 
         <div className="divide-y divide-white/5">
-          {DELIVERY_RECORDS.map((rec) => (
+          {records.map((rec) => (
             <div
               key={rec.id}
               className="px-6 py-4 grid grid-cols-1 sm:grid-cols-12 items-start sm:items-center gap-4 text-xs"
@@ -224,13 +181,13 @@ export const ProtectionView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Column 2: Carrier & Reference Code — Locked to identical left edge (3 cols) */}
+              {/* Column 2: Carrier & Reference Code (3 cols) */}
               <div className="sm:col-span-3 pl-11 sm:pl-0">
                 <p className="text-[#8E8EA0]">{rec.carrierOrMethod}</p>
                 <p className="text-white font-medium tabular-nums mt-0.5">{rec.referenceCode}</p>
               </div>
 
-              {/* Column 3: Sync Status (2 cols, right-aligned on desktop) */}
+              {/* Column 3: Sync Status (2 cols) */}
               <div className="sm:col-span-2 pl-11 sm:pl-0 flex sm:justify-end">
                 <div className="inline-flex items-center gap-2 text-[#8E8EA0]">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#34D399]" />

@@ -2,23 +2,37 @@ import React, { useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { AgCharts } from 'ag-charts-react';
 import { ModuleRegistry, AllCommunityModule, type AgPolarChartOptions } from 'ag-charts-community';
+import { SEED_OVERVIEW_DATA } from '../../shared/seeds';
+import { formatCurrency } from '../../shared/contracts';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-const EXPENSE_CATEGORIES = [
-  { category: 'Suppliers', amount: 1348, percent: '42%', color: '#8B7CFF' },
-  { category: 'Workspace', amount: 898, percent: '28%', color: '#5CE1E6' },
-  { category: 'Platform', amount: 578, percent: '18%', color: '#F472B6' },
-  { category: 'Operations', amount: 385, percent: '12%', color: '#34D399' },
-];
+interface ExpensesDonutCardProps {
+  expenses?: typeof SEED_OVERVIEW_DATA.expenses;
+}
 
-export const ExpensesDonutCard: React.FC = () => {
-  const chartData = useMemo(() => EXPENSE_CATEGORIES, []);
+export const ExpensesDonutCard: React.FC<ExpensesDonutCardProps> = ({
+  expenses = SEED_OVERVIEW_DATA.expenses,
+}) => {
+  const totalAmount = useMemo(() => {
+    return expenses.reduce((sum, item) => sum + item.amount, 0);
+  }, [expenses]);
+
+  // Dynamically compute percentages with division-by-zero defense
+  const formattedExpenses = useMemo(() => {
+    return expenses.map((cat) => ({
+      ...cat,
+      percent:
+        totalAmount > 0
+          ? `${Math.round((cat.amount / totalAmount) * 100)}%`
+          : '0%',
+    }));
+  }, [expenses, totalAmount]);
 
   // AG Charts v14 Polar Donut Configuration
   const chartOptions: AgPolarChartOptions = useMemo(
     () => ({
-      data: chartData,
+      data: expenses,
       theme: 'ag-default-dark',
       background: {
         fill: 'transparent',
@@ -35,8 +49,8 @@ export const ExpensesDonutCard: React.FC = () => {
           angleKey: 'amount',
           calloutLabelKey: 'category',
           innerRadiusRatio: 0.72,
-          fills: ['#8B7CFF', '#5CE1E6', '#F472B6', '#34D399'],
-          strokes: ['#1E1E26', '#1E1E26', '#1E1E26', '#1E1E26'],
+          fills: expenses.map((e) => e.color),
+          strokes: expenses.map(() => '#1E1E26'),
           strokeWidth: 3,
           calloutLabel: {
             enabled: false,
@@ -44,10 +58,10 @@ export const ExpensesDonutCard: React.FC = () => {
         },
       ],
       legend: {
-        enabled: false, // Using custom 2x2 legend below
+        enabled: false,
       },
     }),
-    [chartData]
+    [expenses]
   );
 
   return (
@@ -61,28 +75,28 @@ export const ExpensesDonutCard: React.FC = () => {
         </button>
       </div>
 
-      {/* Donut Chart with Centered Total Callout */}
+      {/* Donut Chart with Centered Dynamic Total */}
       <div className="relative w-full h-[160px] flex items-center justify-center my-2">
         <AgCharts options={chartOptions} style={{ height: '100%', width: '100%' }} />
 
-        {/* Center Donut Label */}
+        {/* Center Donut Label — Derived dynamically */}
         <div className="absolute flex flex-col items-center justify-center pointer-events-none">
           <span className="text-[10px] text-[#8E8EA0] uppercase tracking-wider font-medium">
             Total
           </span>
           <span className="text-xl font-bold text-white tracking-tight tabular-nums">
-            $3,209.00
+            {formatCurrency(totalAmount * 100)}
           </span>
         </div>
       </div>
 
-      {/* 2x2 Legend Grid with Category Dots & Percentages */}
+      {/* 2x2 Legend Grid with Category Dots & Dynamic Percentages */}
       <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/[0.04] text-xs">
-        {EXPENSE_CATEGORIES.map((cat) => (
+        {formattedExpenses.map((cat) => (
           <div key={cat.category} className="flex items-center justify-between pr-2">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-              <span className="text-[#8E8EA0]">{cat.category}</span>
+              <span className="text-[#8E8EA0] truncate max-w-[90px]">{cat.category}</span>
             </div>
             <span className="text-white font-medium tabular-nums">{cat.percent}</span>
           </div>

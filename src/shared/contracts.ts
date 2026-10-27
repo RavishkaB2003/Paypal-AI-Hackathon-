@@ -234,3 +234,66 @@ export function formatCurrency(cents: number, currency = 'USD'): string {
     currency,
   }).format(amount);
 }
+
+// Delivery & Tracking Proof Records
+export const DeliveryRecordSchema = z.object({
+  id: z.string(),
+  invoiceId: z.string(),
+  client: z.string(),
+  documentTitle: z.string(),
+  carrierOrMethod: z.string(),
+  referenceCode: z.string(),
+  syncedToPayPal: z.boolean(),
+});
+export type DeliveryRecord = z.infer<typeof DeliveryRecordSchema>;
+
+// Aggregated Overview Dashboard Schema
+export const CashflowPointSchema = z.object({
+  month: z.string(),
+  earning: z.number().nonnegative(),
+  spending: z.number().nonnegative(),
+});
+export type CashflowPoint = z.infer<typeof CashflowPointSchema>;
+
+export const ExpenseCategorySchema = z.object({
+  category: z.string(),
+  amount: z.number().nonnegative(),
+  color: z.string(),
+});
+export type ExpenseCategory = z.infer<typeof ExpenseCategorySchema>;
+
+export const OverviewCardInfoSchema = z.object({
+  bankName: z.string(),
+  network: z.string(),
+  holderName: z.string(),
+  maskedNumber: z.string(),
+  dailySpent: z.number().nonnegative(),
+  dailyLimit: z.number().positive(),
+  expiry: z.string(),
+});
+export type OverviewCardInfo = z.infer<typeof OverviewCardInfoSchema>;
+
+export const RecentTransactionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.string(),
+  date: z.string(),
+  amountCents: z.number().int(),
+  isIncome: z.boolean(),
+  iconColor: z.string(),
+});
+export type RecentTransaction = z.infer<typeof RecentTransactionSchema>;
+
+export const OverviewDataSchema = z.object({
+  totalBalanceCents: z.number().int().nonnegative(),
+  mainBalanceCents: z.number().int().nonnegative(),
+  inMilestonesCents: z.number().int().nonnegative(),
+  milestoneReleasedCents: z.number().int().nonnegative(),
+  milestoneTotalCents: z.number().int().nonnegative(),
+  balanceTrendPercent: z.number(),
+  cashflow: z.array(CashflowPointSchema),
+  card: OverviewCardInfoSchema,
+  expenses: z.array(ExpenseCategorySchema),
+  recentTransactions: z.array(RecentTransactionSchema),
+});
+export type OverviewData = z.infer<typeof OverviewDataSchema>;
