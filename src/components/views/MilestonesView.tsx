@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { ArrowUpRight, Plus } from 'lucide-react';
 import { type MilestoneEscrow, formatCurrency } from '../../shared/contracts';
 import { SEED_PROJECTS } from '../../shared/seeds';
+import { useMilestones, useReleaseMilestoneStep } from '../../api/hooks';
 
 interface MilestonesViewProps {
   initialProjects?: MilestoneEscrow[];
@@ -9,10 +10,13 @@ interface MilestonesViewProps {
 }
 
 export const MilestonesView: React.FC<MilestonesViewProps> = ({
-  initialProjects = SEED_PROJECTS,
+  initialProjects: propProjects,
   onOpenNewProject,
 }) => {
-  const [projects, setProjects] = useState<MilestoneEscrow[]>(initialProjects);
+  const { data: serverProjects } = useMilestones();
+  const projects = propProjects || serverProjects || SEED_PROJECTS;
+
+  const releaseStepMutation = useReleaseMilestoneStep();
 
   // Dynamic calculations from live project state
   const totalFundsCents = useMemo(() => {
@@ -48,198 +52,201 @@ export const MilestonesView: React.FC<MilestonesViewProps> = ({
     );
   }, [projects]);
 
-  const handleReleaseStep = (projectId: string, stepId: string) => {
-    setProjects((prev) =>
-      prev.map((proj) => {
-        if (proj.id !== projectId) return proj;
-        const updatedTranches = proj.tranches.map((t) =>
-          t.id === stepId ? { ...t, status: 'RELEASED' as const, releasedAt: new Date().toISOString().split('T')[0] } : t
-        );
-        return {
-          ...proj,
-          tranches: updatedTranches,
-        };
-      })
-    );
+  const handleReleaseStep = (projectId: string) => {
+    releaseStepMutation.mutate(projectId);
   };
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Top Summary Metrics — Dynamically calculated */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-[#1E1E26] rounded-[24px] p-5 border border-white/5 shadow-sm">
-          <span className="text-xs text-[#8E8EA0] font-medium">Total Project Funds</span>
-          <p className="text-2xl font-bold text-white tabular-nums mt-1.5">
-            {formatCurrency(totalFundsCents)}
-          </p>
-          <p className="text-[11px] text-[#8E8EA0] mt-2">{projects.length} active client projects</p>
+      {/* Dynamic Summary Strip */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between text-[#8E8EA0] text-xs font-medium">
+            <span>Total Milestone Funds</span>
+            <ArrowUpRight className="w-4 h-4 text-[#8B7CFF]" />
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl font-bold text-white tabular-nums">
+              {formatCurrency(totalFundsCents)}
+            </span>
+            <p className="text-[11px] text-[#8E8EA0] mt-1">{projects.length} active client agreements</p>
+          </div>
         </div>
 
-        <div className="bg-[#1E1E26] rounded-[24px] p-5 border border-white/5 shadow-sm">
-          <span className="text-xs text-[#8E8EA0] font-medium">Paid Out So Far</span>
-          <p className="text-2xl font-bold text-white tabular-nums mt-1.5">
-            {formatCurrency(paidOutCents)}
-          </p>
-          <p className="text-[11px] text-[#8E8EA0] mt-2">
-            {totalFundsCents > 0
-              ? `${Math.round((paidOutCents / totalFundsCents) * 100)}% of total project value`
-              : '0% released'}
-          </p>
+        <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between text-[#8E8EA0] text-xs font-medium">
+            <span>Paid Out to Date</span>
+            <span className="text-[11px] text-[#34D399] font-medium bg-[#34D399]/10 px-2 py-0.5 rounded-full">
+              Completed
+            </span>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl font-bold text-white tabular-nums">
+              {formatCurrency(paidOutCents)}
+            </span>
+            <p className="text-[11px] text-[#8E8EA0] mt-1">Successfully approved and released</p>
+          </div>
         </div>
 
-        <div className="bg-[#1E1E26] rounded-[24px] p-5 border border-white/5 shadow-sm">
-          <span className="text-xs text-[#8E8EA0] font-medium">Waiting on Client</span>
-          <p className="text-2xl font-bold text-white tabular-nums mt-1.5">
-            {formatCurrency(waitingApprovalCents)}
-          </p>
-          <p className="text-[11px] text-[#8E8EA0] mt-2">
-            {pendingStepCount} payment step{pendingStepCount === 1 ? '' : 's'} ready for approval
-          </p>
+        <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between text-[#8E8EA0] text-xs font-medium">
+            <span>Waiting for Approval</span>
+            <span className="text-[11px] text-[#FFC439] font-medium bg-[#FFC439]/10 px-2 py-0.5 rounded-full">
+              Action Ready
+            </span>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl font-bold text-white tabular-nums">
+              {formatCurrency(waitingApprovalCents)}
+            </span>
+            <p className="text-[11px] text-[#8E8EA0] mt-1">
+              {pendingStepCount} {pendingStepCount === 1 ? 'step ready for sign-off' : 'steps ready for sign-off'}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Section Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-white">Active Projects</h2>
-          <p className="text-xs text-[#8E8EA0] mt-0.5">
-            Split client payments into clear steps and release funds as each stage is finished
-          </p>
-        </div>
+      {/* Projects List Card */}
+      <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 flex flex-col gap-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-white">Active Milestone Agreements</h2>
+            <p className="text-xs text-[#8E8EA0] mt-0.5">
+              Funds stay locked in escrow and release step-by-step as work deliverables are verified
+            </p>
+          </div>
 
-        <button
-          onClick={onOpenNewProject}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#8B7CFF] hover:bg-[#7A6BEE] text-white text-xs font-semibold rounded-full transition cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>New Project</span>
-        </button>
-      </div>
-
-      {/* Project Cards */}
-      <div className="flex flex-col gap-5">
-        {projects.map((project) => {
-          const projectReleasedCents = project.tranches
-            .filter((t) => t.status === 'RELEASED')
-            .reduce((s, t) => s + t.amountCents, 0);
-
-          const progressPercent =
-            project.totalCents > 0
-              ? Math.round((projectReleasedCents / project.totalCents) * 100)
-              : 0;
-
-          return (
-            <div
-              key={project.id}
-              className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 shadow-sm flex flex-col gap-5"
+          {onOpenNewProject && (
+            <button
+              onClick={onOpenNewProject}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#8B7CFF] hover:bg-[#7A6AE6] text-white text-xs font-medium transition shadow-sm cursor-pointer"
             >
-              {/* Top Row: Project Title & Total Progress */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5">
-                <div>
-                  <h3 className="text-base font-semibold text-white">{project.title}</h3>
-                  <p className="text-xs text-[#8E8EA0] mt-1">
-                    {project.clientName} ·{' '}
-                    <span className="text-white font-semibold tabular-nums">
-                      {formatCurrency(projectReleasedCents)}
-                    </span>{' '}
-                    paid of{' '}
-                    <span className="text-white font-semibold tabular-nums">
-                      {formatCurrency(project.totalCents)}
-                    </span>{' '}
-                    total
-                  </p>
+              <Plus className="w-4 h-4" />
+              <span>New agreement</span>
+            </button>
+          )}
+        </div>
+
+        {/* Individual Project Cards */}
+        <div className="flex flex-col gap-4">
+          {projects.map((project) => {
+            const completedCents = project.tranches
+              .filter((t) => t.status === 'RELEASED')
+              .reduce((sum, t) => sum + t.amountCents, 0);
+
+            const progressPct = Math.round((completedCents / project.totalCents) * 100);
+
+            return (
+              <div
+                key={project.id}
+                className="bg-[#141418] rounded-[20px] p-5 border border-white/5 flex flex-col gap-4 hover:border-white/10 transition"
+              >
+                {/* Project Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[#8B7CFF] font-medium tracking-wide">
+                        {project.id}
+                      </span>
+                      <span className="w-1 h-1 rounded-full bg-white/20" />
+                      <span className="text-xs text-[#8E8EA0]">{project.clientName}</span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-white mt-1">{project.title}</h3>
+                  </div>
+
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xs text-[#8E8EA0]">Agreement Total:</span>
+                    <span className="text-base font-bold text-white tabular-nums">
+                      {formatCurrency(project.totalCents, project.currency)}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3 min-w-[200px]">
-                  <div className="flex-1 bg-[#141418] h-2 rounded-full overflow-hidden">
+                {/* Progress Bar Strip */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs text-[#8E8EA0]">
+                    <span>Overall progress</span>
+                    <span className="text-white font-medium tabular-nums">{progressPct}% released</span>
+                  </div>
+                  <div className="w-full bg-[#1E1E26] rounded-full h-2 overflow-hidden">
                     <div
                       className="bg-[#8B7CFF] h-full rounded-full transition-all duration-500"
-                      style={{ width: `${progressPercent}%` }}
+                      style={{ width: `${progressPct}%` }}
                     />
                   </div>
-                  <span className="text-xs font-bold text-white tabular-nums">
-                    {progressPercent}%
-                  </span>
                 </div>
-              </div>
 
-              {/* 3-Column Step Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {project.tranches.map((step, idx) => {
-                  const isReleased = step.status === 'RELEASED';
-                  const isPending = step.status === 'PENDING_APPROVAL';
+                {/* Step Tranches Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  {project.tranches.map((tranche, idx) => {
+                    const isPaid = tranche.status === 'RELEASED';
+                    const isActionable = tranche.status === 'PENDING_APPROVAL';
 
-                  return (
-                    <div
-                      key={step.id}
-                      className={`rounded-2xl p-4 border flex flex-col justify-between gap-4 transition ${
-                        isPending
-                          ? 'bg-[#262630]/80 border-[#8B7CFF]/40'
-                          : 'bg-[#141418] border-white/5'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8E8EA0]">
-                            Step {idx + 1} · {step.percent}%
+                    return (
+                      <div
+                        key={tranche.id}
+                        className={`rounded-[16px] p-4 border flex flex-col justify-between gap-3 transition ${
+                          isPaid
+                            ? 'bg-[#1E1E26]/60 border-[#34D399]/20'
+                            : isActionable
+                            ? 'bg-[#1E1E26] border-[#FFC439]/30 shadow-sm'
+                            : 'bg-[#18181F]/40 border-white/5 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-medium text-[#8E8EA0]">
+                            Step {idx + 1} ({tranche.percent}%)
                           </span>
 
-                          {isReleased && (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#8E8EA0]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#34D399]" />
-                              Paid
-                            </span>
-                          )}
-                          {isPending && (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#FFC439]" />
-                              Ready for approval
-                            </span>
-                          )}
-                          {!isReleased && !isPending && (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#8E8EA0]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                              Upcoming
-                            </span>
-                          )}
+                          <span
+                            className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                              isPaid
+                                ? 'bg-[#34D399]/10 text-[#34D399]'
+                                : isActionable
+                                ? 'bg-[#FFC439]/10 text-[#FFC439]'
+                                : 'bg-white/5 text-[#8E8EA0]'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isPaid ? 'bg-[#34D399]' : isActionable ? 'bg-[#FFC439]' : 'bg-[#8E8EA0]'
+                              }`}
+                            />
+                            {isPaid ? 'Paid' : isActionable ? 'Ready for approval' : 'Upcoming'}
+                          </span>
                         </div>
 
-                        <h4 className="text-sm font-semibold text-white">{step.name}</h4>
-                        <p className="text-xs text-[#8E8EA0] mt-1">
-                          {isReleased
-                            ? `Completed on ${step.releasedAt || 'Oct 2026'}`
-                            : isPending
-                            ? 'Ready for client sign-off'
-                            : 'Unlocks upon previous step sign-off'}
-                        </p>
-                      </div>
+                        <div>
+                          <p className="text-xs font-semibold text-white leading-snug">{tranche.name}</p>
+                          <p className="text-sm font-bold text-white tabular-nums mt-1.5">
+                            {formatCurrency(tranche.amountCents, project.currency)}
+                          </p>
+                        </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                        <span className="text-base font-bold text-white tabular-nums">
-                          {formatCurrency(step.amountCents)}
-                        </span>
-
-                        {isPending ? (
+                        {/* Action Button: Live step approval */}
+                        {isActionable && (
                           <button
-                            onClick={() => handleReleaseStep(project.id, step.id)}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#8B7CFF] hover:bg-[#7A6BEE] text-white text-[11px] font-semibold transition cursor-pointer"
+                            disabled={releaseStepMutation.isPending}
+                            onClick={() => handleReleaseStep(project.id)}
+                            className="w-full mt-1 py-1.5 px-3 rounded-full bg-[#FFC439] hover:bg-[#E5AF33] text-black text-xs font-semibold transition shadow-sm cursor-pointer disabled:opacity-50"
                           >
-                            <span>Release Funds</span>
-                            <ArrowUpRight className="w-3 h-3" />
+                            {releaseStepMutation.isPending ? 'Releasing...' : 'Approve & release'}
                           </button>
-                        ) : (
-                          <span className="text-[11px] text-[#8E8EA0]">
-                            {isReleased ? 'Completed' : 'Scheduled'}
+                        )}
+
+                        {isPaid && tranche.releasedAt && (
+                          <span className="text-[11px] text-[#34D399] flex items-center gap-1 font-medium">
+                            Released on {tranche.releasedAt}
                           </span>
                         )}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

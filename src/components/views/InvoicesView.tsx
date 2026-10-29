@@ -9,6 +9,7 @@ import {
 } from 'ag-grid-community';
 import { type Invoice, formatCurrency } from '../../shared/contracts';
 import { SEED_INVOICES } from '../../shared/seeds';
+import { useInvoices } from '../../api/hooks';
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -33,9 +34,12 @@ interface InvoicesViewProps {
 }
 
 export const InvoicesView: React.FC<InvoicesViewProps> = ({
-  invoices = SEED_INVOICES,
+  invoices: propInvoices,
   onOpenCreateInvoice,
 }) => {
+  const { data: serverInvoices } = useInvoices();
+  const invoices = propInvoices || serverInvoices || SEED_INVOICES;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
@@ -58,132 +62,126 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
       .reduce((sum, inv) => sum + inv.amountCents, 0);
   }, [invoices]);
 
-  const pendingCount = useMemo(() => {
-    return invoices.filter((inv) => inv.status === 'SENT' || inv.status === 'OVERDUE').length;
-  }, [invoices]);
-
-  // Filtered rows for AG Grid
-  const rowData = useMemo(() => {
-    return invoices.filter((inv) => {
-      const matchesSearch =
-        inv.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.clientName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'ALL' || inv.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [invoices, searchTerm, statusFilter]);
-
   // AG Grid Column Definitions
-  const colDefs = useMemo<ColDef<Invoice>[]>(
+  const columnDefs = useMemo<ColDef<Invoice>[]>(
     () => [
       {
         field: 'invoiceNumber',
-        headerName: 'Invoice #',
-        width: 150,
-        pinned: 'left',
-        cellRenderer: (params: { value: string }) => (
-          <span className="font-semibold text-white tracking-tight">{params.value}</span>
+        headerName: 'Invoice',
+        minWidth: 150,
+        flex: 1,
+        cellRenderer: (params: any) => (
+          <div className="flex items-center gap-2 h-full">
+            <span className="font-semibold text-white">{params.value}</span>
+            {params.data?.sha256Proof && (
+              <span title="Delivery proof verified on file">
+                <Shield className="w-3.5 h-3.5 text-[#34D399]" />
+              </span>
+            )}
+          </div>
         ),
       },
       {
         field: 'clientName',
         headerName: 'Client',
-        flex: 1.2,
         minWidth: 200,
-        cellRenderer: (params: { data?: Invoice }) =>
-          params.data ? (
-            <div className="flex flex-col py-1">
-              <span className="text-white font-medium leading-tight">{params.data.clientName}</span>
-              <span className="text-[11px] text-[#8E8EA0] leading-tight">{params.data.clientEmail}</span>
-            </div>
-          ) : null,
-      },
-      {
-        field: 'status',
-        headerName: 'Status',
-        width: 140,
-        cellRenderer: (params: { value: string }) => {
-          const status = params.value;
-          let badgeClass = 'bg-[#262630]/70 text-[#8E8EA0] border-white/5';
-          if (status === 'PAID') badgeClass = 'bg-[#19322B] text-[#34D399] border-[#34D399]/25';
-          if (status === 'SENT') badgeClass = 'bg-[#1D2E33] text-[#5CE1E6] border-[#5CE1E6]/25';
-          if (status === 'OVERDUE') badgeClass = 'bg-[#33202E] text-[#F472B6] border-[#F472B6]/25';
-          if (status === 'DISPUTED') badgeClass = 'bg-[#3F2B2B] text-[#F87171] border-[#F87171]/25';
-
-          return (
-            <div className="flex items-center h-full">
-              <span
-                className={`w-[84px] h-[26px] inline-flex items-center justify-center rounded-full text-[11px] font-semibold tracking-wide border shadow-sm ${badgeClass}`}
-              >
-                {status}
-              </span>
-            </div>
-          );
-        },
-      },
-      {
-        headerName: 'Split Stages (30/40/30)',
-        width: 190,
-        cellRenderer: (params: { data?: Invoice }) => {
-          if (!params.data?.escrowSplit) return <span className="text-[#8E8EA0]">Standard</span>;
-          const { upfrontCents, releasedCents } = params.data.escrowSplit;
-          const isUpfrontReleased = releasedCents >= upfrontCents;
-          return (
-            <div className="flex items-center gap-2 h-full text-xs font-mono">
-              <span
-                className={
-                  isUpfrontReleased
-                    ? 'text-[#8B7CFF] font-semibold tracking-tight'
-                    : 'text-[#8E8EA0]'
-                }
-              >
-                30%
-              </span>
-              <span className="text-white/20 select-none">/</span>
-              <span className="text-[#8E8EA0]">40%</span>
-              <span className="text-white/20 select-none">/</span>
-              <span className="text-[#8E8EA0]">30%</span>
-            </div>
-          );
-        },
-      },
-      {
-        field: 'amountCents',
-        headerName: 'Amount',
-        width: 130,
-        cellRenderer: (params: { value: number }) => (
-          <div className="flex items-center justify-end h-full font-semibold text-white tabular-nums pr-2">
-            {formatCurrency(params.value)}
+        flex: 1.5,
+        cellRenderer: (params: any) => (
+          <div className="flex flex-col justify-center h-full leading-tight">
+            <span className="text-white font-medium text-xs">{params.value}</span>
+            <span className="text-[11px] text-[#8E8EA0]">{params.data?.clientEmail}</span>
           </div>
         ),
       },
       {
-        field: 'dueDate',
-        headerName: 'Due Date',
-        width: 120,
-        cellRenderer: (params: { value: string }) => (
-          <span className="text-xs text-[#8E8EA0]">{params.value}</span>
+        field: 'amountCents',
+        headerName: 'Amount',
+        minWidth: 140,
+        flex: 1,
+        cellRenderer: (params: any) => (
+          <div className="flex items-center h-full">
+            <span className="font-semibold text-white tabular-nums">
+              {formatCurrency(params.value, params.data?.currency || 'USD')}
+            </span>
+          </div>
         ),
       },
       {
-        headerName: 'Action',
-        width: 130,
-        pinned: 'right',
-        cellRenderer: (params: { data?: Invoice }) => (
-          <div className="flex items-center h-full">
-            {params.data?.status === 'PAID' ? (
-              <span className="text-[11px] text-[#34D399] font-medium flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5" /> Sealed
-              </span>
-            ) : (
-              <button
-                onClick={() => alert(`Payment link copied for ${params.data?.invoiceNumber}`)}
-                className="px-3 py-1 bg-[#8B7CFF] hover:bg-[#7A6BEE] text-white text-xs font-medium rounded-full shadow-sm transition cursor-pointer flex items-center gap-1"
+        field: 'status',
+        headerName: 'Status',
+        minWidth: 140,
+        flex: 1,
+        cellRenderer: (params: any) => {
+          const status = params.value;
+          let badgeBg = 'bg-[#262630] text-[#8E8EA0] border border-white/5';
+          let dotColor = 'bg-[#8E8EA0]';
+
+          if (status === 'PAID') {
+            badgeBg = 'bg-[#34D399]/10 text-[#34D399] border border-[#34D399]/20';
+            dotColor = 'bg-[#34D399]';
+          } else if (status === 'SENT') {
+            badgeBg = 'bg-[#8B7CFF]/10 text-[#8B7CFF] border border-[#8B7CFF]/20';
+            dotColor = 'bg-[#8B7CFF]';
+          } else if (status === 'DISPUTED') {
+            badgeBg = 'bg-[#F472B6]/10 text-[#F472B6] border border-[#F472B6]/20';
+            dotColor = 'bg-[#F472B6]';
+          } else if (status === 'OVERDUE') {
+            badgeBg = 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+            dotColor = 'bg-rose-400';
+          }
+
+          return (
+            <div className="flex items-center h-full">
+              <span
+                className={`inline-flex items-center justify-center gap-1.5 w-[94px] h-[26px] rounded-full text-[11px] font-medium shrink-0 ${badgeBg}`}
               >
-                <span>Collect</span>
-                <ArrowUpRight className="w-3 h-3" />
-              </button>
-            )}
+                <span className={`w-1.5 h-1.5 rounded-full ${dotColor} shrink-0`} />
+                <span>{status.charAt(0) + status.slice(1).toLowerCase()}</span>
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        headerName: 'Payment Split',
+        minWidth: 200,
+        flex: 1.5,
+        cellRenderer: (params: any) => {
+          const split = params.data?.escrowSplit;
+          if (!split) {
+            return (
+              <div className="flex items-center h-full">
+                <span className="text-[#8E8EA0] text-xs">Standard (100% on delivery)</span>
+              </div>
+            );
+          }
+          const total = params.data.amountCents;
+          const pct = Math.round((split.releasedCents / total) * 100);
+
+          return (
+            <div className="flex flex-col justify-center h-full w-full gap-1">
+              <div className="flex justify-between text-[11px] text-[#8E8EA0]">
+                <span>3-step split</span>
+                <span className="text-white font-medium">{pct}% paid</span>
+              </div>
+              <div className="w-full bg-[#141418] rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-[#8B7CFF] h-full rounded-full transition-all duration-300"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        field: 'dueDate',
+        headerName: 'Due Date',
+        minWidth: 130,
+        flex: 1,
+        cellRenderer: (params: any) => (
+          <div className="flex items-center h-full">
+            <span className="text-[#8E8EA0] text-xs tabular-nums">{params.value}</span>
           </div>
         ),
       },
@@ -191,96 +189,130 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
     []
   );
 
+  // Filtered rows for AG Grid
+  const rowData = useMemo(() => {
+    return invoices.filter((inv) => {
+      const matchesSearch =
+        inv.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inv.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inv.clientEmail.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = statusFilter === 'ALL' || inv.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [invoices, searchTerm, statusFilter]);
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Metrics Row — Computed dynamically from invoices */}
+      {/* Dynamic Summary Cards Strip */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 shadow-sm">
-          <div className="text-xs text-[#8E8EA0] font-medium">Total Invoiced</div>
-          <div className="text-2xl lg:text-3xl font-bold text-white tracking-tight tabular-nums mt-2">
-            {formatCurrency(totalInvoicedCents)}
+        <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between text-[#8E8EA0] text-xs font-medium">
+            <span>Total Invoiced</span>
+            <ArrowUpRight className="w-4 h-4 text-[#8B7CFF]" />
           </div>
-          <div className="text-[11px] text-[#34D399] mt-1 flex items-center gap-1 font-medium">
-            <span>{invoices.length} total client invoices</span>
-          </div>
-        </div>
-
-        <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 shadow-sm">
-          <div className="text-xs text-[#8E8EA0] font-medium">In Project Stages (30/40/30)</div>
-          <div className="text-2xl lg:text-3xl font-bold text-white tracking-tight tabular-nums mt-2">
-            {formatCurrency(inEscrowCents)}
-          </div>
-          <div className="text-[11px] text-[#8B7CFF] mt-1 flex items-center gap-1 font-medium">
-            <span>Held across phased stages</span>
+          <div className="mt-3">
+            <span className="text-2xl font-bold text-white tabular-nums">
+              {formatCurrency(totalInvoicedCents)}
+            </span>
+            <p className="text-[11px] text-[#8E8EA0] mt-1">{invoices.length} invoices on file</p>
           </div>
         </div>
 
-        <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 shadow-sm">
-          <div className="text-xs text-[#8E8EA0] font-medium">Awaiting Settlement</div>
-          <div className="text-2xl lg:text-3xl font-bold text-white tracking-tight tabular-nums mt-2">
-            {formatCurrency(awaitingSettlementCents)}
+        <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between text-[#8E8EA0] text-xs font-medium">
+            <span>Held in Payment Escrow</span>
+            <span className="text-[11px] text-[#5CE1E6] font-medium bg-[#5CE1E6]/10 px-2 py-0.5 rounded-full">
+              Protected
+            </span>
           </div>
-          <div className="text-[11px] text-[#5CE1E6] mt-1 flex items-center gap-1 font-medium">
-            <span>{pendingCount} client invoices pending</span>
+          <div className="mt-3">
+            <span className="text-2xl font-bold text-white tabular-nums">
+              {formatCurrency(inEscrowCents)}
+            </span>
+            <p className="text-[11px] text-[#8E8EA0] mt-1">Releases upon client milestone approval</p>
+          </div>
+        </div>
+
+        <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between text-[#8E8EA0] text-xs font-medium">
+            <span>Awaiting Settlement</span>
+            <span className="text-[11px] text-[#FFC439] font-medium bg-[#FFC439]/10 px-2 py-0.5 rounded-full">
+              Pending
+            </span>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl font-bold text-white tabular-nums">
+              {formatCurrency(awaitingSettlementCents)}
+            </span>
+            <p className="text-[11px] text-[#8E8EA0] mt-1">Sent or scheduled invoices</p>
           </div>
         </div>
       </div>
 
-      {/* Control Bar */}
-      <div className="bg-[#1E1E26] rounded-[24px] p-4 border border-white/5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Search */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-[#141418] rounded-full border border-white/5 w-full md:w-80">
-          <Search className="w-4 h-4 text-[#8E8EA0]" />
-          <input
-            type="text"
-            placeholder="Search invoice or client..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-transparent border-none text-xs text-white placeholder-[#8E8EA0] focus:outline-none w-full"
-          />
-        </div>
+      {/* Main Table Container: Toolbar + AG Grid */}
+      <div className="bg-[#1E1E26] rounded-[24px] p-6 border border-white/5 flex flex-col gap-4 shadow-sm">
+        {/* Toolbar Header */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-[#8E8EA0] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by client or invoice number..."
+              className="w-full bg-[#141418] border border-white/5 rounded-full pl-10 pr-4 py-2 text-xs text-white placeholder-[#8E8EA0] focus:outline-none focus:border-[#8B7CFF]/50 transition"
+            />
+          </div>
 
-        {/* Status Pills & Create Action */}
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-          <div className="flex items-center gap-1 bg-[#141418] p-1 rounded-full border border-white/5">
-            {['ALL', 'PAID', 'SENT', 'OVERDUE'].map((status) => (
+          {/* Status Filter Pills + Create Button */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {['ALL', 'PAID', 'SENT', 'DISPUTED', 'OVERDUE'].map((s) => (
               <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer ${
-                  statusFilter === status
-                    ? 'bg-[#2F2C44] text-white shadow-sm'
-                    : 'text-[#8E8EA0] hover:text-white'
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition cursor-pointer ${
+                  statusFilter === s
+                    ? 'bg-[#8B7CFF] text-white shadow-sm'
+                    : 'bg-[#141418] text-[#8E8EA0] hover:text-white border border-white/5'
                 }`}
               >
-                {status}
+                {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
               </button>
             ))}
+
+            {onOpenCreateInvoice && (
+              <button
+                onClick={onOpenCreateInvoice}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#8B7CFF] hover:bg-[#7A6AE6] text-white text-xs font-medium transition shadow-sm ml-auto cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Create invoice</span>
+              </button>
+            )}
           </div>
-
-          <button
-            onClick={onOpenCreateInvoice}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#8B7CFF] hover:bg-[#7A6BEE] text-white text-xs font-semibold rounded-full transition cursor-pointer shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Create Invoice</span>
-          </button>
         </div>
-      </div>
 
-      {/* AG Grid Container */}
-      <div className="w-full h-[420px] rounded-[24px] overflow-hidden border border-white/5 shadow-sm">
-        <AgGridReact
-          theme={finityAgTheme}
-          rowData={rowData}
-          columnDefs={colDefs}
-          defaultColDef={{
-            sortable: true,
-            resizable: true,
-          }}
-          pagination={true}
-          paginationPageSize={10}
-        />
+        {/* AG Grid React Container */}
+        <div className="w-full h-[480px] rounded-xl overflow-hidden border border-white/5">
+          <AgGridReact<Invoice>
+            theme={finityAgTheme}
+            rowData={rowData}
+            columnDefs={columnDefs}
+            rowHeight={54}
+            headerHeight={44}
+            pagination={true}
+            paginationPageSize={10}
+            paginationPageSizeSelector={[10, 20, 50]}
+            animateRows={true}
+            defaultColDef={{
+              sortable: true,
+              filter: false,
+              resizable: true,
+            }}
+          />
+        </div>
       </div>
     </div>
   );

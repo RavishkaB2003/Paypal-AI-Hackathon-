@@ -7,6 +7,9 @@ import 'dotenv/config';
 import { getDb } from './db/database';
 import { invoicesRoute } from './routes/invoices';
 import { milestonesRoute } from './routes/milestones';
+import { protectionRoute } from './routes/protection';
+import { overviewRoute } from './routes/overview';
+import { paypalRoute } from './routes/paypal';
 
 const app = new Hono();
 
@@ -31,9 +34,12 @@ app.get('/api/health', (c) => {
   });
 });
 
-// Mount Routes
+// Mount Routes for All 5 Dedicated Workflows & PayPal Integration
+app.route('/api/overview', overviewRoute);
 app.route('/api/invoices', invoicesRoute);
 app.route('/api/milestones', milestonesRoute);
+app.route('/api/protection', protectionRoute);
+app.route('/api/paypal', paypalRoute);
 
 // Global Error Handler
 app.onError((err, c) => {

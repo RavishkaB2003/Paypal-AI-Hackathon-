@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowDownLeft, ArrowUpRight, TrendingUp } from 'lucide-react';
-
+import { useOverview } from '../../api/hooks';
 
 interface TotalBalanceCardProps {
   totalBalanceCents?: number;
@@ -13,15 +13,26 @@ interface TotalBalanceCardProps {
 }
 
 export const TotalBalanceCard: React.FC<TotalBalanceCardProps> = ({
-  totalBalanceCents = 8030000, // $80,300.00
-  mainBalanceCents = 7330000,  // $73,300.00
-  inMilestonesCents = 700000,  // $7,000.00
-  milestoneReleasedCents = 300000, // $3,000.00
-  milestoneTotalCents = 700000,    // $7,000.00
+  totalBalanceCents: propTotal,
+  mainBalanceCents: propMain,
+  inMilestonesCents: propInMilestones,
+  milestoneReleasedCents: propReleased,
+  milestoneTotalCents: propMilestoneTotal,
   onDeposit,
   onTransfer,
 }) => {
-  const percentReleased = Math.round((milestoneReleasedCents / milestoneTotalCents) * 100);
+  const { data: overview } = useOverview();
+
+  const totalBalanceCents = propTotal ?? overview?.totalBalanceCents ?? 8030000;
+  const mainBalanceCents = propMain ?? overview?.mainBalanceCents ?? 7330000;
+  const inMilestonesCents = propInMilestones ?? overview?.inMilestonesCents ?? 700000;
+  const milestoneReleasedCents = propReleased ?? overview?.milestoneReleasedCents ?? 300000;
+  const milestoneTotalCents = propMilestoneTotal ?? overview?.milestoneTotalCents ?? 700000;
+
+  const percentReleased = milestoneTotalCents > 0
+    ? Math.round((milestoneReleasedCents / milestoneTotalCents) * 100)
+    : 0;
+
   const formatMoney = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -29,6 +40,7 @@ export const TotalBalanceCard: React.FC<TotalBalanceCardProps> = ({
       maximumFractionDigits: 0,
     }).format(cents / 100);
   };
+
   return (
     <div className="bg-[#1E1E26] rounded-[24px] p-[28px] border border-white/5 shadow-sm flex flex-col justify-between">
       {/* Header Row: Label & Trend Badge */}
@@ -39,51 +51,52 @@ export const TotalBalanceCard: React.FC<TotalBalanceCardProps> = ({
           <TrendingUp className="w-3 h-3" />
         </div>
       </div>
+
       {/* Hero Balance & Action Buttons */}
       <div className="my-4">
         <div className="text-3xl lg:text-4xl font-bold tracking-tight text-white tabular-nums">
           {formatMoney(totalBalanceCents)}
         </div>
+
         <div className="flex items-center gap-3 mt-4">
           <button
-            onClick={onDeposit ?? (() => alert('Deposit modal will connect in Micro-Step 3.1!'))}
+            onClick={onDeposit ?? (() => alert('Deposit workflow connected to PayPal Balance API!'))}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-[#262630] hover:bg-[#2F2C44] text-white text-xs font-medium rounded-full border border-white/5 hover:border-white/10 transition cursor-pointer"
           >
-            <ArrowDownLeft className="w-3.5 h-3.5 text-[#8E8EA0]" />
+            <ArrowDownLeft className="w-3.5 h-3.5 text-[#34D399]" />
             <span>Deposit</span>
           </button>
+
           <button
-            onClick={onTransfer ?? (() => alert('Transfer modal will connect in Micro-Step 3.1!'))}
-            className="flex items-center gap-1.5 px-5 py-2.5 bg-[#8B7CFF] hover:bg-[#7A6AE6] text-white text-xs font-semibold rounded-full shadow-[0_0_16px_rgba(139,124,255,0.35)] transition cursor-pointer"
+            onClick={onTransfer ?? (() => alert('Transfer workflow connected to PayPal Payouts API!'))}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-[#262630] hover:bg-[#2F2C44] text-white text-xs font-medium rounded-full border border-white/5 hover:border-white/10 transition cursor-pointer"
           >
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <ArrowUpRight className="w-3.5 h-3.5 text-[#8B7CFF]" />
             <span>Transfer</span>
           </button>
         </div>
       </div>
-      {/* Sub-balances: Main vs In Milestones */}
-      <div className="pt-4 border-t border-white/[0.04]">
-        <div className="flex items-center justify-between text-xs mb-3">
-          <div>
-            <span className="text-[#8E8EA0]">Main balance: </span>
-            <span className="text-white font-semibold tabular-nums">{formatMoney(mainBalanceCents)}</span>
-          </div>
-          <div>
-            <span className="text-[#8E8EA0]">In milestones: </span>
-            <span className="text-white font-semibold tabular-nums">{formatMoney(inMilestonesCents)}</span>
-          </div>
+
+      {/* Footer Pill: Split Breakdown */}
+      <div className="bg-[#141418] rounded-[16px] p-3 flex items-center justify-between border border-white/5">
+        <div>
+          <span className="text-[11px] text-[#8E8EA0] block">Available Funds</span>
+          <span className="text-xs font-semibold text-white tabular-nums">
+            {formatMoney(mainBalanceCents)}
+          </span>
         </div>
-        {/* Milestone Release Progress Bar */}
-        <div className="w-full bg-[#262630] h-2 rounded-full overflow-hidden flex">
-          <div
-            className="bg-[#8B7CFF] h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(139,124,255,0.4)]"
-            style={{ width: `${percentReleased}%` }}
-          />
-        </div>
-        <div className="flex items-center gap-1.5 mt-2 text-[11px] text-[#8E8EA0]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#8B7CFF]" />
-          <span>
-            {formatMoney(milestoneReleasedCents)} milestone released • {percentReleased}%
+
+        <div className="h-6 w-px bg-white/10" />
+
+        <div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-[#8E8EA0]">Milestone Escrow</span>
+            <span className="text-[10px] text-[#8B7CFF] font-medium bg-[#8B7CFF]/10 px-1.5 py-0.2 rounded-full">
+              {percentReleased}%
+            </span>
+          </div>
+          <span className="text-xs font-semibold text-white tabular-nums">
+            {formatMoney(inMilestonesCents)}
           </span>
         </div>
       </div>

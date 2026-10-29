@@ -1,1 +1,1 @@
-{"root":["./src/shared/contracts.ts","./src/shared/index.ts"],"version":"6.0.3"}
+{"root":["./server/index.ts","./server/db/database.ts","./server/db/schema.ts","./server/routes/invoices.ts","./server/routes/milestones.ts","./server/routes/overview.ts","./server/routes/paypal.ts","./server/routes/protection.ts","./server/services/paypal.ts","./src/shared/contracts.ts","./src/shared/index.ts","./src/shared/seeds.ts"],"version":"6.0.3"}
