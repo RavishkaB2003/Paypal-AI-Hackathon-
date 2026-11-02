@@ -10,6 +10,8 @@ import {
   submitDisputeEvidence,
   getPayPalStatus,
   scanDocument,
+  runAutonomousPlaybooks,
+  getAgentStatus,
 } from './client';
 import {
   SEED_OVERVIEW_DATA,
@@ -27,6 +29,7 @@ export const QUERY_KEYS = {
   DISPUTES: ['disputes'] as const,
   DELIVERY: ['delivery'] as const,
   PAYPAL_STATUS: ['paypal-status'] as const,
+  AGENTS: ['agents-status'] as const,
 };
 
 // 1. Overview Hook
@@ -131,5 +134,31 @@ export function useScanDocument() {
       mimeType?: string;
       sampleType?: 'delivery' | 'receipt' | 'invoice';
     }) => scanDocument(params),
+  });
+}
+
+// 7. Autonomous Agent Playbook Hooks
+export function useRunPlaybooks() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: runAutonomousPlaybooks,
+    onSuccess: () => {
+      // Invalidate all affected ledger states
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DISPUTES });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DELIVERY });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.OVERVIEW });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MILESTONES });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.INVOICES });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.AGENTS });
+    },
+  });
+}
+
+export function useAgentStatus() {
+  return useQuery({
+    queryKey: QUERY_KEYS.AGENTS,
+    queryFn: getAgentStatus,
+    staleTime: 1000 * 30,
   });
 }

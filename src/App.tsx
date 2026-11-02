@@ -157,7 +157,7 @@ export default function App() {
         </main>
       </div>
 
-      {/* Workspace Assistant Command Palette Modal */}
+            {/* Workspace Assistant Command Palette Modal */}
       <WorkspaceAssistantModal
         isOpen={isWorkspaceAssistantOpen}
         onClose={() => setIsWorkspaceAssistantOpen(false)}
@@ -168,6 +168,10 @@ export default function App() {
         onOpenCreateInvoice={() => {
           setIsWorkspaceAssistantOpen(false);
           setIsCreateInvoiceOpen(true);
+        }}
+        onNotify={(msg) => {
+          setNotification(msg);
+          setTimeout(() => setNotification(null), 4000);
         }}
       />
 

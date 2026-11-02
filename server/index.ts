@@ -12,10 +12,11 @@ import { protectionRoute } from './routes/protection';
 import { overviewRoute } from './routes/overview';
 import { paypalRoute } from './routes/paypal';
 import { scanRoute } from './routes/scan';
+import { agentsRoute } from './routes/agents';
 
 const app = new Hono();
 
-// Global Middlewares (Set 15MB body limit for high-res document uploads)
+// Global Middlewares (15MB body limit for high-res document uploads)
 app.use('*', logger());
 app.use('*', bodyLimit({ maxSize: 15 * 1024 * 1024 }));
 app.use('*', cors({
@@ -37,13 +38,14 @@ app.get('/api/health', (c) => {
   });
 });
 
-// Mount Routes for All Dedicated Workflows & AI Services
+// Mount Routes for All Dedicated Workflows, PayPal & Autonomous Agents
 app.route('/api/overview', overviewRoute);
 app.route('/api/invoices', invoicesRoute);
 app.route('/api/milestones', milestonesRoute);
 app.route('/api/protection', protectionRoute);
 app.route('/api/paypal', paypalRoute);
 app.route('/api/scan', scanRoute);
+app.route('/api/agents', agentsRoute);
 
 // Global Error Handler
 app.onError((err, c) => {

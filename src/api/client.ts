@@ -5,6 +5,7 @@ import {
   type DeliveryRecord,
   type OverviewData,
   type SmartScanResult,
+  type StudioCanvasDirective,
 } from '../shared/contracts';
 
 const API_BASE = '/api';
@@ -130,4 +131,27 @@ export async function scanDocument(params: {
     method: 'POST',
     body: JSON.stringify(params),
   });
+}
+
+// 7. Autonomous Agent Playbooks API
+export interface PlaybookExecutionData {
+  timestamp: string;
+  disputesDefendedCount: number;
+  deliveriesSyncedCount: number;
+  actionsExecuted: string[];
+  canvasDirective: StudioCanvasDirective;
+}
+
+export async function runAutonomousPlaybooks(): Promise<PlaybookExecutionData> {
+  return fetchJson<PlaybookExecutionData>('/agents/run-playbook', {
+    method: 'POST',
+  });
+}
+
+export async function getAgentStatus(): Promise<{
+  status: string;
+  playbooks: Array<{ id: string; status: string; name: string }>;
+  recentAutonomousActions: any[];
+}> {
+  return fetchJson('/agents/status');
 }
