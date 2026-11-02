@@ -4,6 +4,7 @@ import {
   type ProtectionCase,
   type DeliveryRecord,
   type OverviewData,
+  type SmartScanResult,
 } from '../shared/contracts';
 
 const API_BASE = '/api';
@@ -116,5 +117,17 @@ export async function capturePayPalOrder(orderId: string): Promise<{
   return fetchJson<{ captureId: string; status: string; debugId: string | null }>('/paypal/capture-order', {
     method: 'POST',
     body: JSON.stringify({ orderId }),
+  });
+}
+
+// 6. Multimodal Vision Document Scan API
+export async function scanDocument(params: {
+  imageBase64?: string;
+  mimeType?: string;
+  sampleType?: 'delivery' | 'receipt' | 'invoice';
+}): Promise<SmartScanResult> {
+  return fetchJson<SmartScanResult>('/scan', {
+    method: 'POST',
+    body: JSON.stringify(params),
   });
 }

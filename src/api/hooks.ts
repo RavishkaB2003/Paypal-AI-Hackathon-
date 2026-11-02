@@ -9,6 +9,7 @@ import {
   getDeliveryRecords,
   submitDisputeEvidence,
   getPayPalStatus,
+  scanDocument,
 } from './client';
 import {
   SEED_OVERVIEW_DATA,
@@ -34,7 +35,7 @@ export function useOverview() {
     queryKey: QUERY_KEYS.OVERVIEW,
     queryFn: getOverview,
     initialData: SEED_OVERVIEW_DATA,
-    staleTime: 1000 * 30, // 30 seconds
+    staleTime: 1000 * 30,
   });
 }
 
@@ -54,7 +55,6 @@ export function useCreateInvoice() {
   return useMutation({
     mutationFn: createInvoice,
     onSuccess: () => {
-      // Refresh both invoices and overview balance cards
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.INVOICES });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.OVERVIEW });
     },
@@ -77,7 +77,6 @@ export function useReleaseMilestoneStep() {
   return useMutation({
     mutationFn: (projectId: string) => releaseMilestoneStep(projectId),
     onSuccess: () => {
-      // Refresh milestones, active milestone cards, and overview totals
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MILESTONES });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.OVERVIEW });
     },
@@ -120,6 +119,17 @@ export function usePayPalStatus() {
   return useQuery({
     queryKey: QUERY_KEYS.PAYPAL_STATUS,
     queryFn: getPayPalStatus,
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60,
+  });
+}
+
+// 6. Multimodal Vision Scan Hook
+export function useScanDocument() {
+  return useMutation({
+    mutationFn: (params: {
+      imageBase64?: string;
+      mimeType?: string;
+      sampleType?: 'delivery' | 'receipt' | 'invoice';
+    }) => scanDocument(params),
   });
 }
