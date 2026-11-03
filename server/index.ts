@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { bodyLimit } from 'hono/body-limit';
 import 'dotenv/config';
 
 import { getDb } from './db/database';
@@ -10,11 +11,13 @@ import { milestonesRoute } from './routes/milestones';
 import { protectionRoute } from './routes/protection';
 import { overviewRoute } from './routes/overview';
 import { paypalRoute } from './routes/paypal';
+import { settingsRoute } from './routes/settings';
 
 const app = new Hono();
 
-// Global Middlewares
+// Global Middlewares (15MB body limit for high-res document uploads)
 app.use('*', logger());
+app.use('*', bodyLimit({ maxSize: 15 * 1024 * 1024 }));
 app.use('*', cors({
   origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -34,12 +37,13 @@ app.get('/api/health', (c) => {
   });
 });
 
-// Mount Routes for All 5 Dedicated Workflows & PayPal Integration
+// Mount Routes for All Dedicated Workflows & Settings
 app.route('/api/overview', overviewRoute);
 app.route('/api/invoices', invoicesRoute);
 app.route('/api/milestones', milestonesRoute);
 app.route('/api/protection', protectionRoute);
 app.route('/api/paypal', paypalRoute);
+app.route('/api/settings', settingsRoute);
 
 // Global Error Handler
 app.onError((err, c) => {
