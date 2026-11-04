@@ -6,6 +6,8 @@ import {
   type OverviewData,
   type SmartScanResult,
   type StudioCanvasDirective,
+  type AccountSettings,
+  type NotificationItem,
 } from '../shared/contracts';
 
 const API_BASE = '/api';
@@ -27,9 +29,49 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return json.data as T;
 }
 
-// 1. Overview API
-export async function getOverview(): Promise<OverviewData> {
-  return fetchJson<OverviewData>('/overview');
+// 1. Overview & Wallet API
+export async function getOverview(params?: {
+  cashflowTimeframe?: string;
+  expenseTimeframe?: string;
+}): Promise<OverviewData> {
+  const search = new URLSearchParams();
+  if (params?.cashflowTimeframe) search.set('cashflowTimeframe', params.cashflowTimeframe);
+  if (params?.expenseTimeframe) search.set('expenseTimeframe', params.expenseTimeframe);
+  const qs = search.toString();
+  return fetchJson<OverviewData>(`/overview${qs ? `?${qs}` : ''}`);
+}
+
+export async function depositFunds(payload: {
+  amountCents: number;
+  source?: string;
+}): Promise<OverviewData> {
+  return fetchJson<OverviewData>('/overview/deposit', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function transferFunds(payload: {
+  amountCents: number;
+  destination?: string;
+}): Promise<OverviewData> {
+  return fetchJson<OverviewData>('/overview/transfer', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function addPaymentCard(payload: {
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+  holderName: string;
+}): Promise<OverviewData> {
+  return fetchJson<OverviewData>('/overview/cards', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 // 2. Invoices API
@@ -38,14 +80,14 @@ export async function getInvoices(): Promise<Invoice[]> {
 }
 
 export async function createInvoice(payload: {
-  invoiceNumber?: string;
   clientName: string;
   clientEmail: string;
-  amountCents: number;
-  currency?: string;
   dueDate?: string;
-  enableThreeStepSplit?: boolean;
-  sha256Proof?: string;
+  items: Array<{
+    description: string;
+    quantity: number;
+    unitPriceCents: number;
+  }>;
 }): Promise<Invoice> {
   return fetchJson<Invoice>('/invoices', {
     method: 'POST',
@@ -56,6 +98,20 @@ export async function createInvoice(payload: {
 // 3. Milestones API
 export async function getMilestones(): Promise<MilestoneEscrow[]> {
   return fetchJson<MilestoneEscrow[]>('/milestones');
+}
+
+export async function createMilestone(payload: {
+  title: string;
+  clientName: string;
+  clientEmail: string;
+  totalCents: number;
+  currency?: string;
+  stepNames?: [string, string, string];
+}): Promise<MilestoneEscrow> {
+  return fetchJson<MilestoneEscrow>('/milestones', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function releaseMilestoneStep(projectId: string): Promise<MilestoneEscrow> {
@@ -75,11 +131,18 @@ export async function getDeliveryRecords(): Promise<DeliveryRecord[]> {
 
 export async function submitDisputeEvidence(
   disputeId: string,
-  evidenceHash: string
+  payload: {
+    evidenceHash?: string;
+    carrierOrMethod?: string;
+    referenceCode?: string;
+    documentTitle?: string;
+    client?: string;
+    invoiceId?: string;
+  }
 ): Promise<ProtectionCase> {
   return fetchJson<ProtectionCase>(`/protection/disputes/${disputeId}/evidence`, {
     method: 'POST',
-    body: JSON.stringify({ evidenceHash }),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -154,4 +217,35 @@ export async function getAgentStatus(): Promise<{
   recentAutonomousActions: any[];
 }> {
   return fetchJson('/agents/status');
+}
+
+// 8. Account Settings & Notifications API
+export async function getAccountSettings(): Promise<AccountSettings> {
+  return fetchJson<AccountSettings>('/settings');
+}
+
+export async function updateAccountSettings(
+  payload: Partial<AccountSettings>
+): Promise<AccountSettings> {
+  return fetchJson<AccountSettings>('/settings', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getNotifications(): Promise<NotificationItem[]> {
+  return fetchJson<NotificationItem[]>('/settings/notifications');
+}
+
+export async function markNotificationsRead(): Promise<NotificationItem[]> {
+  return fetchJson<NotificationItem[]>('/settings/notifications/read-all', {
+    method: 'POST',
+  });
+}
+
+export async function resetWorkspaceDemo(): Promise<void> {
+  const res = await fetch(`${API_BASE}/settings/reset-demo`, { method: 'POST' });
+  if (!res.ok) {
+    throw new Error('Failed to reset demo data');
+  }
 }

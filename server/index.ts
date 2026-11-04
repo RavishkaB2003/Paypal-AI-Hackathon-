@@ -11,6 +11,7 @@ import { milestonesRoute } from './routes/milestones';
 import { protectionRoute } from './routes/protection';
 import { overviewRoute } from './routes/overview';
 import { paypalRoute } from './routes/paypal';
+import { settingsRoute } from './routes/settings';
 import { scanRoute } from './routes/scan';
 import { agentsRoute } from './routes/agents';
 
@@ -38,12 +39,13 @@ app.get('/api/health', (c) => {
   });
 });
 
-// Mount Routes for All Dedicated Workflows, PayPal & Autonomous Agents
+// Mount Routes for All Dedicated Workflows, Settings, Vision & Autonomous Agents
 app.route('/api/overview', overviewRoute);
 app.route('/api/invoices', invoicesRoute);
 app.route('/api/milestones', milestonesRoute);
 app.route('/api/protection', protectionRoute);
 app.route('/api/paypal', paypalRoute);
+app.route('/api/settings', settingsRoute);
 app.route('/api/scan', scanRoute);
 app.route('/api/agents', agentsRoute);
 
