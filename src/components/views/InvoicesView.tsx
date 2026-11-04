@@ -8,7 +8,6 @@ import {
   type ColDef,
 } from 'ag-grid-community';
 import { type Invoice, formatCurrency } from '../../shared/contracts';
-import { SEED_INVOICES } from '../../shared/seeds';
 import { useInvoices } from '../../api/hooks';
 
 // Register AG Grid modules
@@ -38,7 +37,8 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   onOpenCreateInvoice,
 }) => {
   const { data: serverInvoices } = useInvoices();
-  const invoices = propInvoices || serverInvoices || SEED_INVOICES;
+  const invoices = propInvoices || serverInvoices || [];
+
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');

@@ -1,19 +1,34 @@
-import React, { useMemo } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ChevronDown, Check } from 'lucide-react';
 import { AgCharts } from 'ag-charts-react';
 import { ModuleRegistry, AllCommunityModule, type AgPolarChartOptions } from 'ag-charts-community';
-import { SEED_OVERVIEW_DATA } from '../../shared/seeds';
-import { formatCurrency } from '../../shared/contracts';
+import { useOverview } from '../../api/hooks';
+import { formatCurrency, type ExpenseCategory } from '../../shared/contracts';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface ExpensesDonutCardProps {
-  expenses?: typeof SEED_OVERVIEW_DATA.expenses;
+  expenses?: ExpenseCategory[];
 }
 
+const EXPENSE_TIMEFRAMES = [
+  { id: 'MONTHLY', label: 'Monthly' },
+  { id: 'QUARTERLY', label: 'Quarterly' },
+  { id: 'YEARLY', label: 'Yearly' },
+] as const;
+
 export const ExpensesDonutCard: React.FC<ExpensesDonutCardProps> = ({
-  expenses = SEED_OVERVIEW_DATA.expenses,
+  expenses: propExpenses,
 }) => {
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>('MONTHLY');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const { data: overview } = useOverview({ expenseTimeframe: selectedTimeframe });
+  const expenses = propExpenses ?? overview?.expenses ?? [];
+
+  const activeLabel =
+    EXPENSE_TIMEFRAMES.find((t) => t.id === selectedTimeframe)?.label ?? 'Monthly';
+
   const totalAmount = useMemo(() => {
     return expenses.reduce((sum, item) => sum + item.amount, 0);
   }, [expenses]);
@@ -29,7 +44,7 @@ export const ExpensesDonutCard: React.FC<ExpensesDonutCardProps> = ({
     }));
   }, [expenses, totalAmount]);
 
-  // AG Charts v14 Polar Donut Configuration
+  // AG Charts Polar Donut Configuration
   const chartOptions: AgPolarChartOptions = useMemo(
     () => ({
       data: expenses,
@@ -65,14 +80,48 @@ export const ExpensesDonutCard: React.FC<ExpensesDonutCardProps> = ({
   );
 
   return (
-    <div className="bg-[#1E1E26] rounded-[24px] p-[28px] border border-white/5 shadow-sm flex flex-col justify-between">
+    <div className="bg-[#1E1E26] rounded-[24px] p-[28px] border border-white/5 shadow-sm flex flex-col justify-between relative">
       {/* Header: Title & Timeframe Selector */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-[#8E8EA0] text-sm font-medium">All Expenses</span>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#262630] hover:bg-[#2F2C44] text-white text-xs rounded-full border border-white/5 transition cursor-pointer">
-          <span className="text-[#8E8EA0]">Monthly</span>
-          <ChevronDown className="w-3.5 h-3.5 text-[#8E8EA0]" />
-        </button>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setDropdownOpen((prev) => !prev)}
+            data-testid="expenses-timeframe-button"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#262630] hover:bg-[#2F2C44] text-white text-xs rounded-full border border-white/5 transition cursor-pointer"
+          >
+            <span className="text-[#8E8EA0]">{activeLabel}</span>
+            <ChevronDown className="w-3.5 h-3.5 text-[#8E8EA0]" />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-36 rounded-2xl bg-[#141418] border border-white/10 shadow-xl py-1.5 z-30">
+              {EXPENSE_TIMEFRAMES.map((opt) => {
+                const isSelected = opt.id === selectedTimeframe;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTimeframe(opt.id);
+                      setDropdownOpen(false);
+                    }}
+                    className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition cursor-pointer ${
+                      isSelected
+                        ? 'text-white font-semibold bg-[#8B7CFF]/15'
+                        : 'text-[#8E8EA0] hover:text-white hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-[#8B7CFF]" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Donut Chart with Centered Dynamic Total */}
@@ -82,10 +131,10 @@ export const ExpensesDonutCard: React.FC<ExpensesDonutCardProps> = ({
         {/* Center Donut Label — Derived dynamically */}
         <div className="absolute flex flex-col items-center justify-center pointer-events-none">
           <span className="text-[10px] text-[#8E8EA0] uppercase tracking-wider font-medium">
-            Total
+            {activeLabel}
           </span>
           <span className="text-xl font-bold text-white tracking-tight tabular-nums">
-            {formatCurrency(totalAmount * 100)}
+            {formatCurrency(Math.round(totalAmount * 100))}
           </span>
         </div>
       </div>

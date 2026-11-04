@@ -1,23 +1,48 @@
-import React, { useMemo } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ChevronDown, Check } from 'lucide-react';
 import { AgCharts } from 'ag-charts-react';
 import { ModuleRegistry, AllCommunityModule, type AgCartesianChartOptions } from 'ag-charts-community';
-import { SEED_OVERVIEW_DATA } from '../../shared/seeds';
+import { useOverview } from '../../api/hooks';
+import { formatCurrency, type CashflowPoint } from '../../shared/contracts';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface TransactionsOverviewCardProps {
-  cashflow?: typeof SEED_OVERVIEW_DATA.cashflow;
+  cashflow?: CashflowPoint[];
   totalVolume?: string;
   timeframe?: string;
 }
 
+const TIMEFRAME_OPTIONS = [
+  { id: 'THIS_YEAR', label: 'This Year' },
+  { id: 'LAST_6_MONTHS', label: 'Last 6 Months' },
+  { id: 'THIS_QUARTER', label: 'This Quarter' },
+] as const;
+
 export const TransactionsOverviewCard: React.FC<TransactionsOverviewCardProps> = ({
-  cashflow = SEED_OVERVIEW_DATA.cashflow,
-  totalVolume = '$80,300.00',
-  timeframe = 'This Year',
+  cashflow: propCashflow,
+  totalVolume: propTotalVolume,
 }) => {
-  // AG Charts v14 Finity Matte Dark Configuration
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>('THIS_YEAR');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const { data: overview } = useOverview({ cashflowTimeframe: selectedTimeframe });
+  const cashflow = propCashflow ?? overview?.cashflow ?? [];
+
+  const activeLabel =
+    TIMEFRAME_OPTIONS.find((t) => t.id === selectedTimeframe)?.label ?? 'This Year';
+
+  // Dynamically calculate total volume from SQLite cashflow series (or totalBalanceCents when on default)
+  const computedVolume = useMemo(() => {
+    if (propTotalVolume) return propTotalVolume;
+    const totalDollars = cashflow.reduce((sum, pt) => sum + pt.earning, 0);
+    if (totalDollars > 0) {
+      return formatCurrency(Math.round(totalDollars * 100));
+    }
+    return formatCurrency(overview?.totalBalanceCents ?? 0);
+  }, [propTotalVolume, cashflow, overview?.totalBalanceCents]);
+
+  // AG Charts Finity Matte Dark Configuration
   const chartOptions: AgCartesianChartOptions = useMemo(
     () => ({
       data: cashflow,
@@ -93,20 +118,54 @@ export const TransactionsOverviewCard: React.FC<TransactionsOverviewCardProps> =
   );
 
   return (
-    <div className="bg-[#1E1E26] rounded-[24px] p-[28px] border border-white/5 shadow-sm flex flex-col justify-between">
+    <div className="bg-[#1E1E26] rounded-[24px] p-[28px] border border-white/5 shadow-sm flex flex-col justify-between relative">
       {/* Header: Title & Timeframe Selector */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-[#8E8EA0] text-sm font-medium">Transactions Overview</span>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#262630] hover:bg-[#2F2C44] text-white text-xs rounded-full border border-white/5 transition cursor-pointer">
-          <span className="text-[#8E8EA0]">{timeframe}</span>
-          <ChevronDown className="w-3.5 h-3.5 text-[#8E8EA0]" />
-        </button>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setDropdownOpen((prev) => !prev)}
+            data-testid="cashflow-timeframe-button"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#262630] hover:bg-[#2F2C44] text-white text-xs rounded-full border border-white/5 transition cursor-pointer"
+          >
+            <span className="text-[#8E8EA0]">{activeLabel}</span>
+            <ChevronDown className="w-3.5 h-3.5 text-[#8E8EA0]" />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-40 rounded-2xl bg-[#141418] border border-white/10 shadow-xl py-1.5 z-30">
+              {TIMEFRAME_OPTIONS.map((opt) => {
+                const isSelected = opt.id === selectedTimeframe;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTimeframe(opt.id);
+                      setDropdownOpen(false);
+                    }}
+                    className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition cursor-pointer ${
+                      isSelected
+                        ? 'text-white font-semibold bg-[#8B7CFF]/15'
+                        : 'text-[#8E8EA0] hover:text-white hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-[#8B7CFF]" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Metric & Finity Legend Pills */}
       <div className="flex items-center justify-between mb-4">
         <div className="text-2xl lg:text-3xl font-bold tracking-tight text-white tabular-nums">
-          {totalVolume}
+          {computedVolume}
         </div>
 
         <div className="flex items-center gap-4 text-xs">
