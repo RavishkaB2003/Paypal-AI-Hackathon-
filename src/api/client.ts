@@ -62,11 +62,16 @@ export async function transferFunds(payload: {
 }
 
 export async function addPaymentCard(payload: {
-  brand: string;
-  last4: string;
-  expMonth: number;
-  expYear: number;
   holderName: string;
+  bankName?: string;
+  network?: string;
+  maskedNumber: string;
+  expiry?: string;
+  dailyLimit?: number;
+  brand?: string;
+  last4?: string;
+  expMonth?: number;
+  expYear?: number;
 }): Promise<OverviewData> {
   return fetchJson<OverviewData>('/overview/cards', {
     method: 'POST',
@@ -80,10 +85,15 @@ export async function getInvoices(): Promise<Invoice[]> {
 }
 
 export async function createInvoice(payload: {
+  invoiceNumber?: string;
   clientName: string;
   clientEmail: string;
+  amountCents?: number;
   dueDate?: string;
-  items: Array<{
+  currency?: string;
+  enableThreeStepSplit?: boolean;
+  sha256Proof?: string;
+  items?: Array<{
     description: string;
     quantity: number;
     unitPriceCents: number;

@@ -30,6 +30,7 @@ interface WorkspaceAssistantModalProps {
   onClose: () => void;
   onNavigateTab: (tab: TabType) => void;
   onOpenCreateInvoice: () => void;
+  onNotify?: (message: string) => void;
 }
 
 const BENTO_WIDGETS = [
@@ -46,6 +47,7 @@ export const WorkspaceAssistantModal: React.FC<WorkspaceAssistantModalProps> = (
   onClose,
   onNavigateTab,
   onOpenCreateInvoice,
+  onNotify,
 }) => {
   const [query, setQuery] = useState('');
 
@@ -361,10 +363,20 @@ export const WorkspaceAssistantModal: React.FC<WorkspaceAssistantModalProps> = (
                   </p>
                 </div>
               </div>
-              <button
+                            <button
                 type="button"
                 disabled={playbooksMutation.isPending}
-                onClick={() => playbooksMutation.mutate()}
+                onClick={() =>
+                  playbooksMutation.mutate(undefined, {
+                    onSuccess: (data) => {
+                      if (onNotify) {
+                        onNotify(
+                          `Autonomous Defense: Defended ${data.disputesDefendedCount} claim(s), synced ${data.deliveriesSyncedCount} delivery proof(s).`
+                        );
+                      }
+                    },
+                  })
+                }
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#8B7CFF] hover:bg-[#7A6BEE] disabled:opacity-50 text-xs font-semibold text-white transition cursor-pointer shrink-0"
               >
                 {playbooksMutation.isPending ? (
