@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, CheckCircle2 } from 'lucide-react';
+import { Plus, CheckCircle2, Lock, ShieldCheck } from 'lucide-react';
 import { type TabType } from './shared';
 import { TopNavbar } from './components/layout/TopNavbar';
 import { LeftIconRail } from './components/layout/LeftIconRail';
@@ -13,17 +13,29 @@ import { InvoicesView } from './components/views/InvoicesView';
 import { SmartScanView } from './components/views/SmartScanView';
 import { MilestonesView } from './components/views/MilestonesView';
 import { ProtectionView } from './components/views/ProtectionView';
+import { SettingsView } from './components/views/SettingsView';
 import { WorkspaceAssistantModal } from './components/modals/WorkspaceAssistantModal';
 import { CreateInvoiceModal, type NewInvoicePayload } from './components/modals/CreateInvoiceModal';
-import { useCreateInvoice } from './api/hooks';
+import { useCreateInvoice, useAccountSettings } from './api/hooks';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('OVERVIEW');
   const [isWorkspaceAssistantOpen, setIsWorkspaceAssistantOpen] = useState(false);
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
 
+  const { data: settings } = useAccountSettings();
   const createInvoiceMutation = useCreateInvoice();
+
+  const visibleWidgets = settings?.visibleWidgets ?? [
+    'BALANCE',
+    'CASHFLOW',
+    'CARDS',
+    'MILESTONES',
+    'EXPENSES',
+    'TRANSACTIONS',
+  ];
 
   // Listen for navigation events from cards
   useEffect(() => {
@@ -35,6 +47,15 @@ export default function App() {
     };
     window.addEventListener('paypulse:navigate-tab', handleNavEvent);
     return () => window.removeEventListener('paypulse:navigate-tab', handleNavEvent);
+  }, []);
+
+  // Listen for sign-out lock event
+  useEffect(() => {
+    const handleSignOutEvent = () => {
+      setIsLocked(true);
+    };
+    window.addEventListener('paypulse:sign-out', handleSignOutEvent);
+    return () => window.removeEventListener('paypulse:sign-out', handleSignOutEvent);
   }, []);
 
   // Global Keyboard Shortcut: Cmd+K / Ctrl+K opens Workspace Assistant
@@ -73,20 +94,50 @@ export default function App() {
     );
   };
 
+  if (isLocked) {
+    return (
+      <div className="min-h-screen bg-[#141418] flex items-center justify-center p-6 text-white font-sans">
+        <div className="bg-[#1E1E26] rounded-[24px] p-8 max-w-md w-full border border-white/10 shadow-2xl flex flex-col items-center text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-[#8B7CFF]/15 border border-[#8B7CFF]/30 flex items-center justify-center text-[#8B7CFF]">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold">PayPulse Session Locked</h2>
+            <p className="text-xs text-[#8E8EA0] mt-1.5">
+              Signed out from Merchant Studio. Re-authenticate to access your PayPal wallet & ledger.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsLocked(false)}
+            className="w-full py-3 px-4 rounded-xl bg-[#8B7CFF] hover:bg-[#7A6BEE] text-xs font-semibold text-white transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Unlock Merchant Studio</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#141418] text-white flex flex-col font-sans relative">
-      {/* Toast Notification */}
+    <div className="min-h-screen bg-[#141418] text-white flex flex-col font-sans selection:bg-[#8B7CFF]/30">
+      {/* Top Navigation Bar */}
+      <TopNavbar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onOpenSearch={() => setIsWorkspaceAssistantOpen(true)}
+      />
+
+      {/* Real-time Notification Banner */}
       {notification && (
-        <div className="fixed top-20 right-8 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#1E1E26] border border-[#34D399]/40 text-xs text-white shadow-xl animate-in fade-in slide-in-from-top-2">
+        <div className="bg-[#1E1E26] border-y border-[#8B7CFF]/30 px-6 py-2.5 flex items-center justify-center gap-2.5 text-xs text-white">
           <CheckCircle2 className="w-4 h-4 text-[#34D399]" />
           <span>{notification}</span>
         </div>
       )}
 
-      {/* Top Navbar with 5 Finity Tab Pills */}
-      <TopNavbar activeTab={activeTab} onSelectTab={setActiveTab} />
-
-      {/* Main Body with Floating Icon Rail + Bento Workspace */}
+      {/* Main Workspace Layout */}
       <div className="flex-1 w-full flex max-w-[1600px] mx-auto">
         {/* Floating Capsule Icon Rail on the Far Left */}
         <LeftIconRail activeTab={activeTab} onSelectTab={setActiveTab} />
@@ -102,6 +153,7 @@ export default function App() {
                 {activeTab === 'SMART_SCAN' && 'Receipt & Document Scanner'}
                 {activeTab === 'MILESTONES' && 'Project Milestones'}
                 {activeTab === 'PROTECTION' && 'Disputes & Protection'}
+                {activeTab === 'SETTINGS' && 'Merchant Account Settings'}
               </h1>
               <p className="text-xs md:text-sm text-[#8E8EA0] mt-1">
                 {activeTab === 'OVERVIEW' && 'Manage your payments and transactions in one click'}
@@ -109,6 +161,7 @@ export default function App() {
                 {activeTab === 'SMART_SCAN' && 'Upload receipts, bills, or delivery slips to auto-fill payment details'}
                 {activeTab === 'MILESTONES' && 'Break client projects into payment steps and release funds as work gets approved'}
                 {activeTab === 'PROTECTION' && 'Manage buyer claims, delivery records, and PayPal dispute cases'}
+                {activeTab === 'SETTINGS' && 'Manage business profile, PayPal Sandbox credentials, and Overview layout'}
               </p>
             </div>
 
@@ -124,17 +177,17 @@ export default function App() {
             </button>
           </div>
 
-          {/* Active Tab Container: All 5 Dedicated Workflows */}
+          {/* Active Tab Container: All 6 Dedicated Workflows */}
           <div className="flex-1">
-            {/* Tab 1: Overview Finity Bento Grid */}
+            {/* Tab 1: Overview Finity Bento Grid (Filtered by SQLite User Preferences) */}
             {activeTab === 'OVERVIEW' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                <TotalBalanceCard />
-                <TransactionsOverviewCard />
-                <YourCardsCard />
-                <ActiveMilestonesCard />
-                <ExpensesDonutCard />
-                <RecentTransactionsCard />
+                {visibleWidgets.includes('BALANCE') && <TotalBalanceCard />}
+                {visibleWidgets.includes('CASHFLOW') && <TransactionsOverviewCard />}
+                {visibleWidgets.includes('CARDS') && <YourCardsCard />}
+                {visibleWidgets.includes('MILESTONES') && <ActiveMilestonesCard />}
+                {visibleWidgets.includes('EXPENSES') && <ExpensesDonutCard />}
+                {visibleWidgets.includes('TRANSACTIONS') && <RecentTransactionsCard />}
               </div>
             )}
 
@@ -153,11 +206,22 @@ export default function App() {
 
             {/* Tab 5: Payment Protection & Evidence View */}
             {activeTab === 'PROTECTION' && <ProtectionView />}
+
+            {/* Tab 6: Settings View */}
+            {activeTab === 'SETTINGS' && (
+              <SettingsView
+                onNotify={(msg) => {
+                  setNotification(msg);
+                  setTimeout(() => setNotification(null), 4000);
+                }}
+                onSignOut={() => setIsLocked(true)}
+              />
+            )}
           </div>
         </main>
       </div>
 
-            {/* Workspace Assistant Command Palette Modal */}
+      {/* Workspace Assistant Command Palette Modal */}
       <WorkspaceAssistantModal
         isOpen={isWorkspaceAssistantOpen}
         onClose={() => setIsWorkspaceAssistantOpen(false)}
