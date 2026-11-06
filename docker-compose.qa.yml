@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  paypulse-qa-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: paypulse-qa-backend
+    environment:
+      - PORT=3001
+      - NODE_ENV=qa
+      - SQLITE_DB_PATH=/app/data/paypulse.db
+    volumes:
+      - paypulse_qa_data:/app/data
+    networks:
+      paypulse-qa-net:
+        aliases:
+          - paypulse-backend
+
+  paypulse-qa-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: paypulse-qa-frontend
+    ports:
+      - "4000:80"
+    depends_on:
+      paypulse-qa-backend:
+        condition: service_healthy
+    networks:
+      - paypulse-qa-net
+
+networks:
+  paypulse-qa-net:
+    driver: bridge
+
+volumes:
+  paypulse_qa_data:
