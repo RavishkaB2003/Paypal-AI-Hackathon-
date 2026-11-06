@@ -1,16 +1,21 @@
 {
-    "compilerOptions": {
-        "target": "es2022",
-        "module": "nodenext",
-        "moduleResolution": "nodenext",
-        "lib": ["es2022"],
-        "types": ["node"],
-        "skipLibCheck": true,
-        "strict": true,
-        "noEmit": true,
-        "isolatedDeclarations": true
-
-    },
-    "include": ["server/**/*", "src/shared/**/*"]
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "es2022"
+    ],
+    "types": [
+      "node"
+    ],
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true
+  },
+  "include": [
+    "server/**/*",
+    "src/shared/**/*"
+  ]
 }
-

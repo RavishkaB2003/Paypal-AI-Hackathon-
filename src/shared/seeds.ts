@@ -1,0 +1,206 @@
+import {
+  type Invoice,
+  type MilestoneEscrow,
+  type ProtectionCase,
+  type DeliveryRecord,
+  type OverviewData,
+} from './contracts';
+
+export const SEED_INVOICES: Invoice[] = [
+  {
+    id: 'inv-1',
+    invoiceNumber: 'INV-2026-001',
+    clientName: 'Stripe Global Inc',
+    clientEmail: 'billing@stripe.com',
+    amountCents: 1250000,
+    currency: 'USD',
+    status: 'PAID',
+    dueDate: '2026-10-15',
+    createdAt: '2026-10-01',
+    escrowSplit: { upfrontCents: 375000, midwayCents: 500000, finalCents: 375000, releasedCents: 1250000 },
+    sha256Proof: '7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069',
+  },
+  {
+    id: 'inv-2',
+    invoiceNumber: 'INV-2026-002',
+    clientName: 'Acme Logistics Ltd',
+    clientEmail: 'finance@acmelogistics.com',
+    amountCents: 600000,
+    currency: 'USD',
+    status: 'SENT',
+    dueDate: '2026-11-05',
+    createdAt: '2026-10-18',
+    escrowSplit: { upfrontCents: 180000, midwayCents: 240000, finalCents: 180000, releasedCents: 180000 },
+    sha256Proof: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+  },
+  {
+    id: 'inv-3',
+    invoiceNumber: 'INV-2026-003',
+    clientName: 'Horizon Software',
+    clientEmail: 'ap@horizon.io',
+    amountCents: 1800000,
+    currency: 'USD',
+    status: 'DRAFT',
+    dueDate: '2026-11-20',
+    createdAt: '2026-10-22',
+    escrowSplit: { upfrontCents: 540000, midwayCents: 720000, finalCents: 540000, releasedCents: 0 },
+  },
+  {
+    id: 'inv-4',
+    invoiceNumber: 'INV-2026-004',
+    clientName: 'Nordic Creative Agency',
+    clientEmail: 'payments@nordic.co',
+    amountCents: 450000,
+    currency: 'USD',
+    status: 'OVERDUE',
+    dueDate: '2026-10-10',
+    createdAt: '2026-09-25',
+    escrowSplit: { upfrontCents: 135000, midwayCents: 180000, finalCents: 135000, releasedCents: 0 },
+  },
+  {
+    id: 'inv-5',
+    invoiceNumber: 'INV-2026-005',
+    clientName: 'Vanguard Retailers',
+    clientEmail: 'settlements@vanguard.com',
+    amountCents: 850000,
+    currency: 'USD',
+    status: 'DISPUTED',
+    dueDate: '2026-10-05',
+    createdAt: '2026-09-15',
+    escrowSplit: { upfrontCents: 255000, midwayCents: 340000, finalCents: 255000, releasedCents: 255000 },
+    sha256Proof: 'c5629d70d131ced8183b52e4293fbf160e93e04da933d40f366e26073cc4502f',
+  },
+];
+
+export const SEED_PROJECTS: MilestoneEscrow[] = [
+  {
+    id: 'MS-2026-01',
+    title: 'Finity Design System & Web App Overhaul',
+    clientName: 'Stripe Global Inc',
+    clientEmail: 'billing@stripe.com',
+    totalCents: 600000,
+    currency: 'USD',
+    status: 'ACTIVE',
+    createdAt: '2026-10-01',
+    updatedAt: '2026-10-22',
+    tranches: [
+      { id: 't1', name: 'Project Kickoff & Architecture', percent: 30, amountCents: 180000, status: 'RELEASED', releasedAt: '2026-10-05' },
+      { id: 't2', name: 'Core Bento UI & AG Grid Views', percent: 40, amountCents: 240000, status: 'RELEASED', releasedAt: '2026-10-18' },
+      { id: 't3', name: 'Final QA & Production Handoff', percent: 30, amountCents: 180000, status: 'PENDING_APPROVAL' },
+    ],
+  },
+  {
+    id: 'MS-2026-02',
+    title: 'Next-Gen Mobile Checkout SDK Integration',
+    clientName: 'Acme Corp Design',
+    clientEmail: 'billing@acmecorp.com',
+    totalCents: 425000,
+    currency: 'USD',
+    status: 'ACTIVE',
+    createdAt: '2026-10-12',
+    updatedAt: '2026-10-24',
+    tranches: [
+      { id: 't4', name: 'Initial Setup & API Specs', percent: 30, amountCents: 127500, status: 'RELEASED', releasedAt: '2026-10-18' },
+      { id: 't5', name: 'Checkout Flow Implementation', percent: 40, amountCents: 170000, status: 'PENDING_APPROVAL' },
+      { id: 't6', name: 'App Store Launch Support', percent: 30, amountCents: 127500, status: 'LOCKED' },
+    ],
+  },
+];
+
+export const SEED_DISPUTE_CASES: ProtectionCase[] = [
+  {
+    id: 'case-1',
+    disputeId: 'PP-D-99412',
+    transactionId: 'TXN-884920194',
+    buyerEmail: 'claims@northstar.com',
+    amountCents: 425000,
+    currency: 'USD',
+    reason: 'Item or service not received',
+    status: 'UNDER_REVIEW',
+    evidenceHashes: ['9f8a21c834b65e901a...7c2e'],
+    createdAt: '2026-10-24',
+  },
+  {
+    id: 'case-2',
+    disputeId: 'PP-D-88104',
+    transactionId: 'TXN-773190421',
+    buyerEmail: 'legal@vanguard.com',
+    amountCents: 850000,
+    currency: 'USD',
+    reason: 'Unrecognized charge claim',
+    status: 'RESOLVED_MERCHANT',
+    evidenceHashes: ['4b3c21d890e71a...991a'],
+    createdAt: '2026-10-14',
+    resolvedAt: '2026-10-16',
+  },
+];
+
+export const SEED_DELIVERY_RECORDS: DeliveryRecord[] = [
+  {
+    id: 'REC-01',
+    invoiceId: 'INV-2026-0842',
+    client: 'Northstar Retail Group',
+    documentTitle: 'Signed Waybill & Handover Receipt',
+    carrierOrMethod: 'DHL Express',
+    referenceCode: 'DHL-884920194',
+    syncedToPayPal: true,
+  },
+  {
+    id: 'REC-02',
+    invoiceId: 'INV-2026-0841',
+    client: 'Acme Corp Design',
+    documentTitle: 'Stage 1 Architecture Sign-Off Sheet',
+    carrierOrMethod: 'Client Portal Approval',
+    referenceCode: 'APR-2026-4410',
+    syncedToPayPal: true,
+  },
+  {
+    id: 'REC-03',
+    invoiceId: 'INV-2026-0839',
+    client: 'Stripe Global Inc',
+    documentTitle: 'Production Release Delivery Confirmation',
+    carrierOrMethod: 'FedEx Priority',
+    referenceCode: 'FDX-773190421',
+    syncedToPayPal: true,
+  },
+];
+
+export const SEED_OVERVIEW_DATA: OverviewData = {
+  totalBalanceCents: 8030000, // $80,300.00
+  mainBalanceCents: 7330000,  // $73,300.00
+  inMilestonesCents: 700000,  // $7,000.00
+  milestoneReleasedCents: 300000, // $3,000.00
+  milestoneTotalCents: 700000,    // $7,000.00
+  balanceTrendPercent: 3.2,
+  cashflow: [
+    { month: 'Jan', earning: 34000, spending: 18000 },
+    { month: 'Feb', earning: 42000, spending: 21000 },
+    { month: 'Mar', earning: 38000, spending: 19000 },
+    { month: 'Apr', earning: 55000, spending: 26000 },
+    { month: 'May', earning: 61000, spending: 31000 },
+    { month: 'Jun', earning: 58000, spending: 29000 },
+    { month: 'Jul', earning: 72000, spending: 36000 },
+    { month: 'Aug', earning: 80300, spending: 41000 },
+  ],
+  card: {
+    bankName: 'Universal Bank',
+    network: 'VISA',
+    holderName: 'ALEX VANCE',
+    maskedNumber: '4123',
+    dailySpent: 10000,
+    dailyLimit: 25000,
+    expiry: '09/28',
+  },
+  expenses: [
+    { category: 'Software & Cloud Infrastructure', amount: 3500, color: '#8B7CFF' },
+    { category: 'Contractor & Engineering Splits', amount: 2800, color: '#5CE1E6' },
+    { category: 'Hardware Tooling & Shipments', amount: 1900, color: '#F472B6' },
+    { category: 'Merchant & Gateway Fees', amount: 950, color: '#FFC439' },
+  ],
+  recentTransactions: [
+    { id: 'tx-1', name: 'Figma Enterprise Seat', category: 'Software & Tools', date: 'Oct 24, 2026', amountCents: -4500, isIncome: false, iconColor: '#8B7CFF' },
+    { id: 'tx-2', name: 'Milestone Step 2 Release', category: 'Client Payout', date: 'Oct 23, 2026', amountCents: 240000, isIncome: true, iconColor: '#34D399' },
+    { id: 'tx-3', name: 'DHL Express Shipping Waybill', category: 'Logistics', date: 'Oct 22, 2026', amountCents: -18500, isIncome: false, iconColor: '#5CE1E6' },
+    { id: 'tx-4', name: 'Stripe Global Invoice INV-001', category: 'Client Settlement', date: 'Oct 15, 2026', amountCents: 1250000, isIncome: true, iconColor: '#34D399' },
+  ],
+};
