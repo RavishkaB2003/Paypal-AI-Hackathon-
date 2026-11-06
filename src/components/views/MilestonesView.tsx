@@ -293,20 +293,26 @@ export const MilestonesView: React.FC<MilestonesViewProps> = ({
                             </p>
                           </div>
 
-                          {/* Action Button: Live step approval */}
+                                                    {/* Action Button: Live step approval & funds release */}
                           {isActionable && (
                             <button
                               type="button"
+                              data-testid="release-stage-funds-btn"
+                              data-project-id={project.id}
+                              data-tranche-id={tranche.id}
                               disabled={releaseStepMutation.isPending}
                               onClick={() => handleReleaseStep(project.id)}
                               className="w-full mt-1 py-1.5 px-3 rounded-full bg-[#FFC439] hover:bg-[#E5AF33] text-black text-xs font-semibold transition shadow-sm cursor-pointer disabled:opacity-50"
                             >
-                              {releaseStepMutation.isPending ? 'Releasing...' : 'Approve & release'}
+                              {releaseStepMutation.isPending ? 'Releasing Funds...' : 'Release Stage Funds (Approve)'}
                             </button>
                           )}
 
                           {isPaid && tranche.releasedAt && (
-                            <span className="text-[11px] text-[#34D399] flex items-center gap-1 font-medium">
+                            <span
+                              data-testid="stage-funds-released-badge"
+                              className="text-[11px] text-[#34D399] flex items-center gap-1 font-medium"
+                            >
                               Released on {tranche.releasedAt}
                             </span>
                           )}
@@ -355,7 +361,7 @@ export const MilestonesView: React.FC<MilestonesViewProps> = ({
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Mobile App Redesign & API Integration"
+                  data-testid="agreement-title-input" placeholder="e.g. Mobile App Redesign & API Integration"
                   className="w-full px-4 py-2.5 rounded-xl bg-[#141418] border border-white/10 text-white text-sm focus:outline-none focus:border-[#8B7CFF]"
                   required
                 />
@@ -370,7 +376,7 @@ export const MilestonesView: React.FC<MilestonesViewProps> = ({
                     type="text"
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
-                    placeholder="e.g. Acme Global"
+                    data-testid="agreement-client-input" placeholder="e.g. Acme Global"
                     className="w-full px-4 py-2.5 rounded-xl bg-[#141418] border border-white/10 text-white text-sm focus:outline-none focus:border-[#8B7CFF]"
                     required
                   />
@@ -400,7 +406,7 @@ export const MilestonesView: React.FC<MilestonesViewProps> = ({
                   step="50"
                   value={totalUsd}
                   onChange={(e) => setTotalUsd(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#141418] border border-white/10 text-white text-sm font-semibold tabular-nums focus:outline-none focus:border-[#8B7CFF]"
+                  data-testid="agreement-total-input" className="w-full px-4 py-2.5 rounded-xl bg-[#141418] border border-white/10 text-white text-sm font-semibold tabular-nums focus:outline-none focus:border-[#8B7CFF]"
                   required
                 />
               </div>
@@ -486,7 +492,7 @@ export const MilestonesView: React.FC<MilestonesViewProps> = ({
                 <button
                   type="submit"
                   disabled={createMilestoneMutation.isPending}
-                  className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#8B7CFF] hover:bg-[#7A6AEE] disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer"
+                  data-testid="confirm-create-agreement-btn" className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#8B7CFF] hover:bg-[#7A6AEE] disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer"
                 >
                   {createMilestoneMutation.isPending && (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

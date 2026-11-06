@@ -119,19 +119,20 @@ export const ProtectionView: React.FC<ProtectionViewProps> = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          disabled={playbooksMutation.isPending}
-          onClick={() => playbooksMutation.mutate()}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#8B7CFF] hover:bg-[#7A6AE6] disabled:opacity-50 text-white text-xs font-semibold transition shadow-sm cursor-pointer shrink-0"
-        >
-          {playbooksMutation.isPending ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <CheckCircle2 className="w-3.5 h-3.5" />
-          )}
-          <span>Run Defense Agent</span>
-        </button>
+       <button
+            type="button"
+            data-testid="run-defense-agent-btn"
+            disabled={playbooksMutation.isPending}
+            onClick={() => playbooksMutation.mutate()}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#8B7CFF] hover:bg-[#7A6AE6] disabled:opacity-50 text-white text-xs font-semibold transition shadow-sm cursor-pointer shrink-0"
+     >
+       {playbooksMutation.isPending ? (
+         <Loader2 className="w-3.5 h-3.5 animate-spin" />
+       ) : (
+         <CheckCircle2 className="w-3.5 h-3.5" />
+       )}
+       <span>Run Defense Agent</span>
+     </button>
       </div>
 
       {playbooksMutation.data && (
@@ -241,23 +242,24 @@ export const ProtectionView: React.FC<ProtectionViewProps> = ({
                         {c.status === 'RESOLVED_MERCHANT' ? 'Resolved in your favor' : 'Under Review'}
                       </span>
                     </td>
-
-                    <td className="py-4 text-right">
-                      {c.status !== 'RESOLVED_MERCHANT' ? (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenProofModal(c)}
-                          className="px-3.5 py-1.5 rounded-full bg-[#8B7CFF] hover:bg-[#7A6AE6] text-white text-xs font-medium transition cursor-pointer"
-                        >
-                          Submit proof
-                        </button>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-[#34D399] font-medium">
-                          <Check className="w-3.5 h-3.5" />
-                          Protected
-                        </span>
-                      )}
-                    </td>
+                  <td className="py-4 text-right">
+                   {c.status !== 'RESOLVED_MERCHANT' ? (
+                     <button
+                       type="button"
+                       data-testid="submit-proof-btn"
+                       data-case-id={c.id}
+                       onClick={() => handleOpenProofModal(c)}
+                       className="px-3.5 py-1.5 rounded-full bg-[#8B7CFF] hover:bg-[#7A6AE6] text-white text-xs font-medium transition cursor-pointer"
+                     >
+                       Submit Delivery Proof
+                     </button>
+                   ) : (
+                     <span className="inline-flex items-center gap-1 text-[11px] text-[#34D399] font-medium">
+                       <Check className="w-3.5 h-3.5" />
+                       Protected
+                     </span>
+                   )}
+                 </td>
                   </tr>
                 ))
               )}
@@ -431,7 +433,7 @@ export const ProtectionView: React.FC<ProtectionViewProps> = ({
                 <button
                   type="submit"
                   disabled={submitEvidenceMutation.isPending}
-                  className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#8B7CFF] hover:bg-[#7A6AEE] disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer"
+                  data-testid="confirm-submit-proof-btn" className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#8B7CFF] hover:bg-[#7A6AEE] disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer"
                 >
                   {submitEvidenceMutation.isPending && (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
