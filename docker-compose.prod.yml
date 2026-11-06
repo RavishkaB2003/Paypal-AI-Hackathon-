@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  paypulse-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: paypulse-prod-backend
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - SQLITE_DB_PATH=/app/data/paypulse.db
+    volumes:
+      - paypulse_prod_data:/app/data
+    networks:
+      paypulse-prod-net:
+        aliases:
+          - paypulse-backend
+
+  paypulse-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: paypulse-prod-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      paypulse-backend:
+        condition: service_healthy
+    networks:
+      - paypulse-prod-net
+
+networks:
+  paypulse-prod-net:
+    driver: bridge
+
+volumes:
+  paypulse_prod_data:
