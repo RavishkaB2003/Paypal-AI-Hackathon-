@@ -45,7 +45,8 @@ export function computeSha256(data: Buffer | string): string {
 }
 
 /**
- * Extracts structured financial details from a receipt/invoice image using Google Gemini 3.8 Flash
+ * Extracts structured financial details from a receipt/invoice image using Google Gemini
+ * with high-speed inference, a 25s circuit-breaker timeout, and resilient model cascading.
  */
 export async function extractDocumentWithVision(params: {
   imageBase64?: string;
@@ -56,8 +57,7 @@ export async function extractDocumentWithVision(params: {
   const now = new Date().toISOString();
   const today = now.split('T')[0];
 
-  // If no image or no valid Gemini key, use deterministic fallback
-  if (!apiKey || !params.imageBase64 || apiKey.includes('your_')) {
+  const buildDeterministicSample = (notesSuffix = '') => {
     const isDelivery = params.sampleType === 'delivery';
     const samplePayload = isDelivery
       ? {
@@ -77,7 +77,7 @@ export async function extractDocumentWithVision(params: {
           ],
           confidence: 0.98,
           disputeShieldStatus: 'VERIFIED' as const,
-          evidenceNotes: 'Signed recipient waybill with verified GPS coordinates and delivery signature.',
+          evidenceNotes: `Signed recipient waybill with verified GPS coordinates and delivery signature.${notesSuffix}`,
         }
       : {
           documentType: 'RECEIPT' as const,
@@ -102,9 +102,15 @@ export async function extractDocumentWithVision(params: {
           ],
           confidence: 0.95,
           disputeShieldStatus: 'VERIFIED' as const,
-          evidenceNotes: 'Merchant receipt matched with registered bank clearing statement.',
+          evidenceNotes: `Merchant receipt matched with registered bank clearing statement.${notesSuffix}`,
         };
 
+    return samplePayload;
+  };
+
+  // If explicitly requesting a synthetic sample (e.g. from backend integration tests)
+  if (params.sampleType || !params.imageBase64) {
+    const samplePayload = buildDeterministicSample();
     const mockHash = computeSha256(JSON.stringify(samplePayload));
     return {
       id: `scan-${Date.now()}`,
@@ -114,7 +120,12 @@ export async function extractDocumentWithVision(params: {
     };
   }
 
-  // Live Multimodal Vision call with Google Gemini Flash
+  // If apiKey is missing or placeholder for user uploads, report error
+  if (!apiKey || apiKey.includes('your_')) {
+    throw new Error('Gemini API key is not configured. Please set GOOGLE_GENERATIVE_AI_API_KEY in .env.');
+  }
+
+  // Parse Base64 buffer and compute cryptographic SHA-256
   const rawHash = computeSha256(params.imageBase64);
   let mimeType = params.mimeType || 'image/jpeg';
   let base64Data = params.imageBase64;
@@ -127,23 +138,33 @@ export async function extractDocumentWithVision(params: {
   }
   const imageBuffer = Buffer.from(base64Data, 'base64');
 
-  // Uses Gemini 3.8 Flash for fast multimodal vision extraction (auto-upgrades legacy 2.5)
-  let modelName = process.env.DEFAULT_VISION_MODEL || 'gemini-3.8-flash';
-  if (modelName === 'gemini-2.5-flash' || modelName.includes('2.5')) {
-    modelName = 'gemini-3.8-flash';
-  }
-  const model = google(modelName);
+  // Prioritize fast, high-accuracy models with graceful cascade
+  const envModel = process.env.DEFAULT_VISION_MODEL?.trim();
+  const candidateModels = [
+    envModel && envModel !== 'gemini-3.8-flash' && !envModel.includes('2.0') && !envModel.includes('2.5')
+      ? envModel
+      : 'gemini-3.1-flash-lite',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-flash-latest',
+  ].filter((m, idx, arr) => arr.indexOf(m) === idx);
 
-  const { object } = await generateObject({
-    model,
-    schema: ExtractionSchema,
-    messages: [
-      {
-        role: 'user',
-        content: [
+  let lastError: Error | null = null;
+  for (const modelId of candidateModels) {
+    try {
+      const model = google(modelId);
+
+      const { object } = await generateObject({
+        model,
+        schema: ExtractionSchema,
+        abortSignal: AbortSignal.timeout(25000), // 25s circuit-breaker timeout
+        messages: [
           {
-            type: 'text',
-            text: `You are PayPulse Vision, an enterprise financial document extractor for PayPal merchants.
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `You are PayPulse Vision, an enterprise financial document extractor for PayPal merchants.
 Analyze this invoice, receipt, or proof of delivery image. Extract:
 1. Document Type (INVOICE, RECEIPT, WAYBILL, or PROOF_OF_DELIVERY)
 2. Vendor or Client Name
@@ -155,20 +176,28 @@ Analyze this invoice, receipt, or proof of delivery image. Extract:
 8. Confidence score (0.00 to 1.00)
 9. Dispute Shield Status (VERIFIED, FLAGGED, or MANUAL_REVIEW)
 10. Evidence notes describing signatures, tracking IDs, or timestamps`,
-          },
-          {
-            type: 'image',
-            image: imageBuffer,
+              },
+              {
+                type: 'image',
+                image: imageBuffer,
+              },
+            ],
           },
         ],
-      },
-    ],
-  });
+      });
 
-  return {
-    id: `scan-${Date.now()}`,
-    ...object,
-    sha256Hash: rawHash,
-    createdAt: today,
-  };
+      return {
+        id: `scan-${Date.now()}`,
+        ...object,
+        sha256Hash: rawHash,
+        createdAt: today,
+      };
+    } catch (err: unknown) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`[PayPulse Vision] Model '${modelId}' extraction attempt failed (${lastError.message.slice(0, 100)}). Trying fallback...`);
+    }
+  }
+
+  // Real upload extraction failed across all models - throw transparent error
+  throw new Error(`AI Vision extraction could not process document: ${lastError?.message || 'Inference failed'}`);
 }
