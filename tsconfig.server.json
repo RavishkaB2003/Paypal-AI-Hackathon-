@@ -15,7 +15,6 @@
     "isolatedModules": true
   },
   "include": [
-    "api/**/*",
     "server/**/*",
     "src/shared/**/*"
   ]

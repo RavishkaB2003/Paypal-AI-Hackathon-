@@ -16,23 +16,33 @@ const DB_PATH =
   process.env.SQLITE_DB_PATH ||
   (isVercel ? '/tmp/paypulse.db' : './data/paypulse.db');
 
-// Ensure data folder exists
-const dbDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+// Ensure data folder exists (ignore read-only filesystem errors in serverless environments)
+try {
+  const dbDir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+} catch {
+  // Handled by in-memory fallback in getDb() if filesystem is read-only
 }
 
 let dbInstance: Database.Database | null = null;
 
 export function getDb(): Database.Database {
   if (dbInstance) {
+    seedDatabaseIfEmpty(dbInstance);
     return dbInstance;
   }
 
-  dbInstance = new Database(DB_PATH);
+  try {
+    dbInstance = new Database(DB_PATH);
+    // Enforce WAL mode in persistent environments; use MEMORY journal on Vercel /tmp
+    dbInstance.pragma(isVercel ? 'journal_mode = MEMORY' : 'journal_mode = WAL');
+  } catch (err) {
+    console.warn('Falling back to in-memory SQLite database:', err);
+    dbInstance = new Database(':memory:');
+  }
 
-  // Enforce WAL mode in persistent environments; use MEMORY journal on Vercel /tmp
-  dbInstance.pragma(isVercel ? 'journal_mode = MEMORY' : 'journal_mode = WAL');
   dbInstance.pragma('foreign_keys = ON');
 
   // Initialize schema
