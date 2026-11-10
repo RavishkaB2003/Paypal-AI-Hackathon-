@@ -11,7 +11,10 @@ import {
   SEED_OVERVIEW_DATA,
 } from '../../src/shared/seeds';
 
-const DB_PATH = process.env.SQLITE_DB_PATH || './data/paypulse.db';
+const isVercel = Boolean(process.env.VERCEL);
+const DB_PATH =
+  process.env.SQLITE_DB_PATH ||
+  (isVercel ? '/tmp/paypulse.db' : './data/paypulse.db');
 
 // Ensure data folder exists
 const dbDir = path.dirname(DB_PATH);
@@ -28,8 +31,8 @@ export function getDb(): Database.Database {
 
   dbInstance = new Database(DB_PATH);
 
-  // Enforce WAL mode for fast concurrent reads/writes and enable Foreign Keys
-  dbInstance.pragma('journal_mode = WAL');
+  // Enforce WAL mode in persistent environments; use MEMORY journal on Vercel /tmp
+  dbInstance.pragma(isVercel ? 'journal_mode = MEMORY' : 'journal_mode = WAL');
   dbInstance.pragma('foreign_keys = ON');
 
   // Initialize schema

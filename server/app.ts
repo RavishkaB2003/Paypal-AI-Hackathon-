@@ -19,11 +19,25 @@ export const app = new Hono();
 // Global Middlewares (15MB body limit for high-res document uploads)
 app.use('*', logger());
 app.use('*', bodyLimit({ maxSize: 15 * 1024 * 1024 }));
-app.use('*', cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(
+  '*',
+  cors({
+    origin: (origin) => {
+      if (!origin) return '*';
+      if (
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('http://127.0.0.1:') ||
+        origin.endsWith('.vercel.app') ||
+        (process.env.ALLOWED_ORIGIN && origin === process.env.ALLOWED_ORIGIN)
+      ) {
+        return origin;
+      }
+      return 'http://localhost:5173';
+    },
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 // Ensure SQLite DB is initialized and seeded on boot
 getDb();
@@ -51,8 +65,11 @@ app.route('/api/agents', agentsRoute);
 // Global Error Handler
 app.onError((err, c) => {
   console.error('Server Unhandled Error:', err);
-  return c.json({
-    success: false,
-    error: err.message || 'Internal Server Error',
-  }, 500);
+  return c.json(
+    {
+      success: false,
+      error: err.message || 'Internal Server Error',
+    },
+    500
+  );
 });
