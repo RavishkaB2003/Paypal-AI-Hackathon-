@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "server": "tsx watch server/index.ts",
@@ -25,7 +28,7 @@
     "ag-grid-community": "^36.2.0",
     "ag-grid-react": "^36.2.0",
     "ai": "^7.0.156",
-    "better-sqlite3": "^11.8.1",
+    "better-sqlite3": "^12.11.1",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.7",
     "hono": "^4.7.2",
